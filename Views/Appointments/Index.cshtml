@@ -1,0 +1,97 @@
+@model HospitalAdminPanel.Models.ViewModels.AppointmentListViewModel
+@{
+    ViewData["Title"] = "Appointments";
+    ViewData["HeroTitle"] = "Appointments";
+    ViewData["HeroSubtitle"] = "Review, approve, and manage patient bookings";
+    ViewData["HeroIcon"] = "bi-calendar3-event-fill";
+    ViewData["HeroBreadcrumb"] = "Home / Appointments";
+}
+
+@section HeroActions {
+    <form method="get" class="hero-toolbar-form">
+        <div class="hero-toolbar-group">
+            <label class="hero-input-chip">
+                <i class="bi bi-person-badge"></i>
+                <input name="mrNo" value="@Model.MrNo" class="hero-field-input hero-field-input--sm" placeholder="Patient MR" aria-label="Patient MR" />
+            </label>
+        </div>
+        <div class="hero-toolbar-divider" aria-hidden="true"></div>
+        <div class="hero-toolbar-group">
+            <label class="hero-input-chip">
+                <i class="bi bi-funnel"></i>
+                <input name="status" value="@Model.StatusFilter" class="hero-field-input hero-field-input--sm" placeholder="Status" aria-label="Status filter" />
+            </label>
+        </div>
+        <div class="hero-toolbar-divider" aria-hidden="true"></div>
+        <div class="hero-toolbar-group">
+            <label class="hero-input-chip">
+                <i class="bi bi-search"></i>
+                <input name="search" value="@Model.Search" class="hero-field-input hero-field-input--md" placeholder="Search..." aria-label="Search appointments" />
+            </label>
+        </div>
+        <div class="hero-toolbar-divider" aria-hidden="true"></div>
+        <div class="hero-toolbar-group hero-toolbar-actions">
+            <button class="btn-hero-solid" type="submit">
+                <span class="hero-btn-icon hero-btn-icon-solid"><i class="bi bi-search"></i></span>
+                Load
+            </button>
+        </div>
+    </form>
+}
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+@if (!string.IsNullOrEmpty(Model.InfoMessage))
+{
+    <div class="alert alert-info mb-3 small">@Model.InfoMessage</div>
+}
+@if (Model.TotalRecords > 0)
+{
+    <div class="small text-muted mb-3">Showing @Model.Appointments.Count of @Model.TotalRecords appointment(s)</div>
+}
+
+<div class="panel-card datatable-panel">
+    <div class="table-responsive">
+        <table class="table table-btih datatable-btih mb-0 w-100">
+            <thead><tr><th>ID</th><th>Patient</th><th>Doctor</th><th>Time</th><th>Status</th><th class="no-sort">Actions</th></tr></thead>
+            <tbody>
+            @foreach (var a in Model.Appointments)
+            {
+                var status = a.Status ?? "Unknown";
+                var badge = status.Contains("Pending", StringComparison.OrdinalIgnoreCase) ? "badge-pending"
+                    : status.Contains("Reject", StringComparison.OrdinalIgnoreCase) || status.Contains("Cancel", StringComparison.OrdinalIgnoreCase) ? "badge-rejected"
+                    : "badge-approved";
+                var canAction = status.Contains("Pending", StringComparison.OrdinalIgnoreCase);
+                <tr>
+                    <td>@a.AppointmentId</td>
+                    <td>@(a.Name ?? a.MRNo)<div class="small text-muted">@a.PhoneNo</div></td>
+                    <td>@(a.DoctorName ?? "—")</td>
+                    <td>@(a.AppointmentTime ?? "—")</td>
+                    <td><span class="badge-status @badge">@status</span></td>
+                    <td>
+                        @if (canAction && !string.IsNullOrWhiteSpace(a.AppointmentId))
+                        {
+                            <form asp-action="Approve" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="appointmentId" value="@a.AppointmentId" />
+                                <button type="submit" class="btn btn-sm btn-action btn-action-approve"><i class="bi bi-check-lg"></i> Approve</button>
+                            </form>
+                            <form asp-action="Reject" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="appointmentId" value="@a.AppointmentId" />
+                                <button type="submit" class="btn btn-sm btn-action btn-action-reject"><i class="bi bi-x-lg"></i> Reject</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">—</span>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+

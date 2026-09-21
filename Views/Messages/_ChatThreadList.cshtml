@@ -1,0 +1,69 @@
+@model (List<HospitalAdminPanel.Models.Api.MessageThreadApiModel> Threads, int? ActiveThreadId, string? Search, string? StatusFilter)
+@{
+    string Initials(string mrNo, string subject)
+    {
+        if (!string.IsNullOrWhiteSpace(mrNo))
+        {
+            var parts = mrNo.Split('-', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2) return parts[^1][..Math.Min(2, parts[^1].Length)].ToUpperInvariant();
+        }
+        return string.IsNullOrWhiteSpace(subject) ? "?" : subject.Trim()[..Math.Min(2, subject.Trim().Length)].ToUpperInvariant();
+    }
+
+    string TimeLabel(DateTime dt)
+    {
+        var today = DateTime.Today;
+        if (dt.Date == today) return dt.ToString("HH:mm");
+        if (dt.Date == today.AddDays(-1)) return "Yesterday";
+        return dt.ToString("dd MMM");
+    }
+
+    string StatusBadgeClass(string status) =>
+        status.Contains("CLOSED", StringComparison.OrdinalIgnoreCase) ? "badge-resolved"
+        : status.Contains("PENDING", StringComparison.OrdinalIgnoreCase) ? "badge-pending"
+        : "badge-open";
+}
+
+<div class="chat-thread-list">
+    @if (!Model.Threads.Any())
+    {
+        <div class="chat-thread-empty">
+            <i class="bi bi-inbox"></i>
+            <p>No conversations found</p>
+        </div>
+    }
+    @foreach (var t in Model.Threads)
+    {
+        var isActive = Model.ActiveThreadId == t.ThreadId;
+        var badgeClass = StatusBadgeClass(t.Status);
+        var hasUnread = t.UnreadCount > 0;
+        <a class="chat-thread-item @(isActive ? "is-active" : "") @(hasUnread ? "has-unread" : "")"
+           asp-action="Details" asp-route-id="@t.ThreadId">
+            @if (hasUnread)
+            {
+                <span class="chat-unread-dot" aria-hidden="true"></span>
+            }
+            <div class="chat-thread-avatar">
+                @Initials(t.MrNo, t.Subject)
+                @if (hasUnread && t.UnreadCount > 0)
+                {
+                    <span class="chat-thread-avatar-badge">@(t.UnreadCount > 9 ? "9+" : t.UnreadCount)</span>
+                }
+            </div>
+            <div class="chat-thread-body">
+                <div class="chat-thread-top">
+                    <span class="chat-thread-name">@t.Subject</span>
+                    <span class="chat-thread-time">@TimeLabel(t.UpdatedAt)</span>
+                </div>
+                <div class="chat-thread-preview">@(t.LastMessagePreview ?? "No messages yet")</div>
+                <div class="chat-thread-meta">
+                    <span class="badge-status @badgeClass">@t.Status</span>
+                    @if (!string.IsNullOrWhiteSpace(t.Category))
+                    {
+                        <span class="badge-status badge-category">@t.Category.ToUpperInvariant()</span>
+                    }
+                </div>
+            </div>
+        </a>
+    }
+</div>

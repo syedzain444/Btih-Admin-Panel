@@ -1,0 +1,105 @@
+@model HospitalAdminPanel.Models.ViewModels.ReportsViewModel
+@{
+    ViewData["Title"] = "Reports & Analytics";
+    ViewData["HeroTitle"] = "Reports & Analytics";
+    ViewData["HeroSubtitle"] = "Operational summaries, exports, and audit trail";
+    ViewData["HeroIcon"] = "bi-bar-chart-fill";
+    ViewData["HeroBreadcrumb"] = "Home / Reports";
+}
+
+@section HeroActions {
+    <form method="get" class="hero-toolbar-form">
+        <div class="hero-toolbar-group">
+            <label class="hero-input-chip">
+                <i class="bi bi-calendar3"></i>
+                <input type="date" name="dateFrom" value="@Model.DateFrom" class="hero-field-input hero-field-input--date" aria-label="From date" />
+            </label>
+            <span class="hero-toolbar-label">to</span>
+            <label class="hero-input-chip">
+                <i class="bi bi-calendar3"></i>
+                <input type="date" name="dateTo" value="@Model.DateTo" class="hero-field-input hero-field-input--date" aria-label="To date" />
+            </label>
+        </div>
+        <div class="hero-toolbar-divider" aria-hidden="true"></div>
+        <div class="hero-toolbar-group hero-toolbar-actions">
+            <button class="btn-hero" type="submit">
+                <span class="hero-btn-icon"><i class="bi bi-funnel"></i></span>
+                Apply
+            </button>
+            <a class="btn-hero-solid" asp-action="ExportEngagement" asp-route-dateFrom="@Model.DateFrom" asp-route-dateTo="@Model.DateTo">
+                <span class="hero-btn-icon hero-btn-icon-solid"><i class="bi bi-download"></i></span>
+                Export CSV
+            </a>
+        </div>
+    </form>
+}
+
+@if (Model.MissingApis.Any())
+{
+    <partial name="_MissingApiBanner" model="Model.MissingApis" />
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="stat-card"><div class="value">@(Model.Summary?.MessageThreads ?? 0)</div><div class="label">Message Threads</div></div></div>
+    <div class="col-md-4"><div class="stat-card"><div class="value">@(Model.Summary?.PendingRefills ?? 0)</div><div class="label">Pending Refills</div></div></div>
+    <div class="col-md-4"><div class="stat-card"><div class="value">@(Model.Summary?.OpenTickets ?? 0)</div><div class="label">Open Tickets</div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="panel-card h-100">
+            <div class="panel-header"><strong>Registrations (@Model.DateFrom – @Model.DateTo)</strong></div>
+            <div class="panel-body">
+                @if (Model.RegistrationReport == null)
+                {
+                    <p class="text-muted mb-0">Registration report unavailable.</p>
+                }
+                else
+                {
+                    <p class="mb-2"><strong>@Model.RegistrationReport.TotalRegistrations</strong> new mobile registrations</p>
+                    <p class="small text-muted mb-0">@Model.RegistrationReport.HmisPortalUsers total HMIS portal users</p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="panel-card h-100">
+            <div class="panel-header"><strong>Appointments (@Model.DateFrom – @Model.DateTo)</strong></div>
+            <div class="panel-body">
+                @if (Model.AppointmentReport == null)
+                {
+                    <p class="text-muted mb-0">Appointment report unavailable.</p>
+                }
+                else
+                {
+                    <p class="mb-2"><strong>@Model.AppointmentReport.TotalAppointments</strong> appointments in range</p>
+                    @foreach (var item in Model.AppointmentReport.ByStatus.Take(5))
+                    {
+                        <div class="d-flex justify-content-between small"><span>@item.Status</span><strong>@item.Count</strong></div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="panel-card datatable-panel">
+    <div class="panel-header"><strong>Audit Log</strong></div>
+    <div class="table-responsive">
+        <table class="table table-btih datatable-btih mb-0 w-100">
+            <thead><tr><th>Time</th><th>Actor</th><th>Role</th><th>Action</th><th>MR</th></tr></thead>
+            <tbody>
+            @foreach (var log in Model.AuditLogs.Take(50))
+            {
+                <tr>
+                    <td>@log.CreatedAt.ToString("dd MMM HH:mm")</td>
+                    <td>@(log.ActorId ?? "—")</td>
+                    <td>@(log.ActorRole ?? "—")</td>
+                    <td class="small">@log.Action</td>
+                    <td>@(log.MrNo ?? "—")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

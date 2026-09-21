@@ -1,0 +1,33 @@
+@model HospitalAdminPanel.Models.ViewModels.ChatSidebarViewModel
+@{
+    var filter = Model.StatusFilter ?? "";
+}
+
+<aside class="chat-sidebar">
+    <form method="get" class="chat-search-form" action="@Url.Action("Index")">
+        <div class="chat-search-wrap">
+            <i class="bi bi-search"></i>
+            <input name="search" value="@Model.Search" placeholder="Search conversations..." aria-label="Search conversations" />
+            <kbd class="chat-kbd-hint">⌘ K</kbd>
+            @if (!string.IsNullOrWhiteSpace(Model.StatusFilter))
+            {
+                <input type="hidden" name="status" value="@Model.StatusFilter" />
+            }
+        </div>
+    </form>
+
+    <div class="chat-tabs">
+        <a class="chat-tab @(filter == "" ? "is-active" : "")"
+           asp-action="Index" asp-route-search="@Model.Search">
+            All <span class="chat-tab-count">@Model.AllCount</span>
+        </a>
+        <a class="chat-tab @(filter == "UNREAD" ? "is-active" : "")"
+           asp-action="Index" asp-route-search="@Model.Search" asp-route-status="UNREAD">Unread</a>
+        <a class="chat-tab @(filter == "OPEN" ? "is-active" : "")"
+           asp-action="Index" asp-route-search="@Model.Search" asp-route-status="OPEN">In Progress</a>
+        <a class="chat-tab @(filter == "CLOSED" ? "is-active" : "")"
+           asp-action="Index" asp-route-search="@Model.Search" asp-route-status="CLOSED">Resolved</a>
+    </div>
+
+    <partial name="_ChatThreadList" model="(Model.Threads, Model.ActiveThreadId, Model.Search, Model.StatusFilter)" />
+</aside>

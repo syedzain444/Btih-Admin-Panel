@@ -1,0 +1,960 @@
+@model HospitalAdminPanel.Models.ViewModels.DashboardViewModel
+
+@{
+
+    ViewData["Title"] = "Dashboard";
+
+    ViewData["HeroTitle"] = "Hospital Overview";
+
+    ViewData["HeroSubtitle"] = "Live operational metrics and patient activity";
+
+    ViewData["HeroIcon"] = "bi-speedometer2";
+
+    ViewData["HeroBreadcrumb"] = "Home / Dashboard";
+
+    ViewData["MsgCount"] = Model.MessageThreads;
+
+
+
+    var total = Model.MessageThreads + Model.PendingRefills + Model.OpenTickets;
+
+    var msgPct = total > 0 ? Math.Round(100.0 * Model.MessageThreads / total, 1) : 0;
+
+    var refillPct = total > 0 ? Math.Round(100.0 * Model.PendingRefills / total, 1) : 0;
+
+    var ticketPct = total > 0 ? Math.Round(100.0 * Model.OpenTickets / total, 1) : 0;
+
+
+
+    var dailyLabels = Model.DailyVisits.Select(v => v.Label).ToList();
+
+    var dailyValues = Model.DailyVisits.Select(v => v.Visits).ToList();
+
+    if (!dailyLabels.Any()) { dailyLabels = new List<string> { "—" }; dailyValues = new List<int> { 0 }; }
+
+
+
+    var engagementDays = Model.DailyVisits.OrderBy(v => v.PeriodStart).TakeLast(7).ToList();
+    if (engagementDays.Count < 7)
+    {
+        var existing = engagementDays.ToDictionary(d => d.PeriodStart.Date);
+        for (var i = 6; i >= 0; i--)
+        {
+            var day = DateTime.Today.AddDays(-i).Date;
+            if (!existing.ContainsKey(day))
+            {
+                engagementDays.Add(new HospitalAdminPanel.Models.Api.VisitBucketApiModel
+                {
+                    PeriodStart = day,
+                    Label = day.ToString("ddd"),
+                    Visits = 0,
+                    UniqueUsers = 0,
+                });
+            }
+        }
+        engagementDays = engagementDays.OrderBy(v => v.PeriodStart).TakeLast(7).ToList();
+    }
+
+    var engageLabels = engagementDays.Select(v => v.PeriodStart.ToString("ddd")).ToList();
+    var trendLabels = engagementDays.Select(v => v.PeriodStart.ToString("ddd dd")).ToList();
+    var engageVisits = engagementDays.Select(v => v.Visits).ToList();
+    var engageUnique = engagementDays.Select(v => v.UniqueUsers).ToList();
+    var trendMax = engageVisits.Any() ? Math.Max(engageVisits.Max(), engageUnique.Max()) : 3;
+    var trendSuggestedMax = Math.Max(4, trendMax + 1);
+    var engagePeak = engageVisits.Any() ? engageVisits.Max() : 0;
+    var engageAvg = engageVisits.Any() ? Math.Round(engageVisits.Average(), 1) : 0;
+    var engageUniquePeak = engageUnique.Any() ? engageUnique.Max() : 0;
+
+    var sparkValues = dailyValues.Count >= 7 ? dailyValues.TakeLast(7).ToList() : dailyValues;
+
+    var returnRate = Model.TotalUsers > 0 ? (int)Math.Round(100.0 * Model.ReturningUsers / Model.TotalUsers) : 0;
+
+    var activeRate = Model.TotalUsers > 0 ? (int)Math.Round(100.0 * Model.ActiveUsers / Model.TotalUsers) : 0;
+
+}
+
+
+
+@section HeroActions {
+
+    <div class="hero-toolbar">
+
+        <div class="hero-toolbar-group">
+
+            <div class="hero-live-toggle">
+
+                <span class="hero-live-dot" aria-hidden="true"></span>
+
+                <span class="hero-live-label">Live data</span>
+
+                <div class="form-check form-switch m-0">
+
+                    <input class="form-check-input" type="checkbox" checked disabled aria-label="Live data enabled" />
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="hero-toolbar-divider" aria-hidden="true"></div>
+
+        <div class="hero-toolbar-group">
+
+            <label class="hero-date-chip">
+
+                <i class="bi bi-calendar3"></i>
+
+                <select class="hero-date-select" aria-label="Date range">
+
+                    <option>@Model.DateRangeLabel</option>
+
+                </select>
+
+            </label>
+
+        </div>
+
+        <div class="hero-toolbar-divider" aria-hidden="true"></div>
+
+        <div class="hero-toolbar-group hero-toolbar-actions">
+
+            <button type="button" class="btn-hero">
+
+                <span class="hero-btn-icon"><i class="bi bi-download"></i></span>
+
+                Export
+
+            </button>
+
+            <a asp-controller="Reports" asp-action="Index" class="btn-hero-solid">
+
+                <span class="hero-btn-icon hero-btn-icon-solid"><i class="bi bi-bar-chart-fill"></i></span>
+
+                Reports
+
+            </a>
+
+        </div>
+
+    </div>
+
+}
+
+
+
+<div class="dashboard-page">
+
+    @if (Model.MissingApis.Any())
+
+    {
+
+        <partial name="_MissingApiBanner" model="Model.MissingApis" />
+
+    }
+
+
+
+    <!-- Hero stats band -->
+
+    <section class="dash-hero-band mb-4">
+
+        <div class="dash-hero-band-deco" aria-hidden="true"></div>
+
+        <div class="dash-hero-band-inner">
+
+            <div class="dash-hero-band-text">
+
+                <h2 class="dash-hero-band-title">Operational snapshot</h2>
+
+                <p class="dash-hero-band-sub">Real-time workload across messages, refills, and support</p>
+
+            </div>
+
+            <div class="dash-stat-grid">
+
+                <div class="dash-stat-glass">
+
+                    <div class="dash-stat-top">
+
+                        <span class="dash-stat-icon"><i class="bi bi-chat-dots-fill"></i></span>
+
+                        <span class="dash-stat-chip">+@msgPct%</span>
+
+                    </div>
+
+                    <div class="dash-stat-value">@Model.MessageThreads</div>
+
+                    <div class="dash-stat-label">Message threads</div>
+
+                    <canvas class="dash-sparkline" id="sparkMessages" height="36"></canvas>
+
+                </div>
+
+                <div class="dash-stat-glass">
+
+                    <div class="dash-stat-top">
+
+                        <span class="dash-stat-icon"><i class="bi bi-capsule"></i></span>
+
+                        <span class="dash-stat-chip">@Model.PendingRefills pending</span>
+
+                    </div>
+
+                    <div class="dash-stat-value">@Model.PendingRefills</div>
+
+                    <div class="dash-stat-label">Refill requests</div>
+
+                    <canvas class="dash-sparkline" id="sparkRefills" height="36"></canvas>
+
+                </div>
+
+                <div class="dash-stat-glass">
+
+                    <div class="dash-stat-top">
+
+                        <span class="dash-stat-icon"><i class="bi bi-life-preserver"></i></span>
+
+                        <span class="dash-stat-chip">@Model.OpenTickets open</span>
+
+                    </div>
+
+                    <div class="dash-stat-value">@Model.OpenTickets</div>
+
+                    <div class="dash-stat-label">Support tickets</div>
+
+                    <canvas class="dash-sparkline" id="sparkTickets" height="36"></canvas>
+
+                </div>
+
+                <div class="dash-stat-glass">
+
+                    <div class="dash-stat-top">
+
+                        <span class="dash-stat-icon"><i class="bi bi-people-fill"></i></span>
+
+                        <span class="dash-stat-chip">@activeRate% active</span>
+
+                    </div>
+
+                    <div class="dash-stat-value">@Model.ActiveUsers</div>
+
+                    <div class="dash-stat-label">Active portal users</div>
+
+                    <canvas class="dash-sparkline" id="sparkUsers" height="36"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- Charts row -->
+
+    <div class="row g-3 mb-3">
+
+        <div class="col-xl-4 col-lg-5">
+
+            <div class="dash-chart-card h-100">
+
+                <div class="dash-chart-head">
+
+                    <div>
+
+                        <h3 class="dash-chart-title">Workload distribution</h3>
+
+                        <p class="dash-chart-sub">Module breakdown by open items</p>
+
+                    </div>
+
+                </div>
+
+                <div class="dash-donut-wrap">
+
+                    <canvas id="workloadDonut"></canvas>
+
+                    <div class="dash-donut-center">
+
+                        <strong>@total</strong>
+
+                        <span>Total items</span>
+
+                    </div>
+
+                </div>
+
+                <div class="dash-legend">
+
+                    <div class="dash-legend-item">
+
+                        <span class="dash-legend-dot" style="background:#8B1538"></span>
+
+                        <span>Messages</span>
+
+                        <strong>@Model.MessageThreads</strong>
+
+                        <em>@msgPct%</em>
+
+                    </div>
+
+                    <div class="dash-legend-item">
+
+                        <span class="dash-legend-dot" style="background:#A61E45"></span>
+
+                        <span>Refills</span>
+
+                        <strong>@Model.PendingRefills</strong>
+
+                        <em>@refillPct%</em>
+
+                    </div>
+
+                    <div class="dash-legend-item">
+
+                        <span class="dash-legend-dot" style="background:#6B0F2B"></span>
+
+                        <span>Support</span>
+
+                        <strong>@Model.OpenTickets</strong>
+
+                        <em>@ticketPct%</em>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="col-xl-5 col-lg-7">
+
+            <div class="dash-chart-card dash-chart-card--main h-100">
+
+                <div class="dash-chart-head">
+
+                    <div>
+
+                        <h3 class="dash-chart-title">App visit trend</h3>
+
+                        <p class="dash-chart-sub">Daily mobile portal sessions</p>
+
+                    </div>
+
+                    <div class="dash-chart-controls">
+
+                        <span class="dash-chart-badge"><i class="bi bi-graph-up-arrow"></i> @Model.TotalVisits total</span>
+
+                        <select class="dash-chart-select" aria-label="Chart range" disabled>
+
+                            <option>@Model.DateRangeLabel</option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <div class="dash-chart-canvas-wrap dash-chart-canvas-wrap--tall">
+
+                    <canvas id="visitsAreaChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="col-xl-3">
+
+            <div class="dash-insights-card h-100">
+
+                <div class="dash-chart-head">
+
+                    <div>
+
+                        <h3 class="dash-chart-title">Smart insights</h3>
+
+                        <p class="dash-chart-sub">Key engagement signals</p>
+
+                    </div>
+
+                </div>
+
+                <div class="dash-insight-list">
+
+                    <div class="dash-insight-item">
+
+                        <span class="dash-insight-icon"><i class="bi bi-lightning-charge-fill"></i></span>
+
+                        <p><strong>@Model.TotalUsers</strong> registered users with <strong>@Model.NewUsers</strong> new this period.</p>
+
+                    </div>
+
+                    <div class="dash-insight-item">
+
+                        <span class="dash-insight-icon"><i class="bi bi-lightning-charge-fill"></i></span>
+
+                        <p><strong>@returnRate%</strong> returning users — @Model.ReturningUsers of @Model.TotalUsers came back.</p>
+
+                    </div>
+
+                    <div class="dash-insight-item">
+
+                        <span class="dash-insight-icon"><i class="bi bi-lightning-charge-fill"></i></span>
+
+                        <p>Average session length is <strong>@Model.AvgSessionMinutes min</strong> across portal visits.</p>
+
+                    </div>
+
+                </div>
+
+                <div class="dash-progress-block">
+
+                    <div class="dash-progress-row">
+
+                        <div class="dash-progress-label"><span>Active users</span><strong>@activeRate%</strong></div>
+
+                        <div class="dash-progress-bar"><div class="dash-progress-fill" style="width:@activeRate%"></div></div>
+
+                    </div>
+
+                    <div class="dash-progress-row">
+
+                        <div class="dash-progress-label"><span>Returning users</span><strong>@returnRate%</strong></div>
+
+                        <div class="dash-progress-bar"><div class="dash-progress-fill dash-progress-fill--light" style="width:@returnRate%"></div></div>
+
+                    </div>
+
+                    <div class="dash-progress-row">
+
+                        <div class="dash-progress-label"><span>Messages share</span><strong>@msgPct%</strong></div>
+
+                        <div class="dash-progress-bar"><div class="dash-progress-fill dash-progress-fill--dark" style="width:@msgPct%"></div></div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Bottom row -->
+
+    <div class="row g-3">
+
+        <div class="col-lg-7">
+
+            <div class="dash-chart-card dash-chart-card--engage h-100">
+
+                <div class="dash-chart-head">
+
+                    <div>
+
+                        <h3 class="dash-chart-title">Engagement pulse</h3>
+
+                        <p class="dash-chart-sub">Portal visits &amp; unique users — last 7 days</p>
+
+                    </div>
+
+                    <a asp-controller="Reports" asp-action="Index" class="dash-view-all">View all <i class="bi bi-arrow-right"></i></a>
+
+                </div>
+
+                <div class="dash-engage-stats">
+
+                    <div class="dash-engage-stat">
+
+                        <span class="dash-engage-stat-icon"><i class="bi bi-graph-up"></i></span>
+
+                        <div>
+
+                            <strong>@engagePeak</strong>
+
+                            <small>Peak visits</small>
+
+                        </div>
+
+                    </div>
+
+                    <div class="dash-engage-stat">
+
+                        <span class="dash-engage-stat-icon"><i class="bi bi-activity"></i></span>
+
+                        <div>
+
+                            <strong>@engageAvg</strong>
+
+                            <small>Avg / day</small>
+
+                        </div>
+
+                    </div>
+
+                    <div class="dash-engage-stat">
+
+                        <span class="dash-engage-stat-icon"><i class="bi bi-people"></i></span>
+
+                        <div>
+
+                            <strong>@engageUniquePeak</strong>
+
+                            <small>Peak unique users</small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="dash-chart-legend-inline">
+
+                    <span><i class="dash-legend-swatch dash-legend-swatch--bar"></i> Visits</span>
+
+                    <span><i class="dash-legend-swatch dash-legend-swatch--line"></i> Unique users</span>
+
+                </div>
+
+                <div class="dash-chart-canvas-wrap dash-chart-canvas-wrap--engage">
+
+                    <canvas id="engagementChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="col-lg-5">
+
+            <div class="dash-activity-card h-100">
+
+                <div class="dash-chart-head">
+
+                    <div>
+
+                        <h3 class="dash-chart-title">Recent activity</h3>
+
+                        <p class="dash-chart-sub">Latest messages &amp; refills</p>
+
+                    </div>
+
+                </div>
+
+                <div class="dash-activity-list">
+
+                    @foreach (var t in Model.RecentThreads.Take(4))
+
+                    {
+
+                        <a asp-controller="Messages" asp-action="Details" asp-route-id="@t.ThreadId" class="dash-activity-item">
+
+                            <span class="dash-activity-avatar dash-activity-avatar--msg">M</span>
+
+                            <span class="dash-activity-body">
+
+                                <strong>@t.Subject</strong>
+
+                                <small>@t.MrNo · Message · @t.UpdatedAt.ToString("dd MMM")</small>
+
+                            </span>
+
+                            <span class="badge-status badge-open">@t.Status</span>
+
+                        </a>
+
+                    }
+
+                    @foreach (var r in Model.RecentRefills.Take(3))
+
+                    {
+
+                        <a asp-controller="Refills" asp-action="Index" class="dash-activity-item">
+
+                            <span class="dash-activity-avatar dash-activity-avatar--refill">R</span>
+
+                            <span class="dash-activity-body">
+
+                                <strong>@(r.MedicationName ?? "Refill request")</strong>
+
+                                <small>@r.MrNo · Refill · @r.CreatedAt.ToString("dd MMM")</small>
+
+                            </span>
+
+                            <span class="badge-status badge-pending">@r.Status</span>
+
+                        </a>
+
+                    }
+
+                    @if (!Model.RecentThreads.Any() && !Model.RecentRefills.Any())
+
+                    {
+
+                        <div class="empty-state py-4"><i class="bi bi-inbox d-block"></i>No recent activity</div>
+
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+@section Scripts {
+
+<script>
+
+(function () {
+
+    var maroon = '#8B1538';
+
+    var maroonLight = '#A61E45';
+
+    var maroonDark = '#6B0F2B';
+
+    var maroonSoft = 'rgba(139, 21, 56, 0.12)';
+
+    var maroonGrad = ['#8B1538', '#A61E45', '#6B0F2B', '#C41E5A'];
+
+
+
+    var hiDpi = Math.min(window.devicePixelRatio || 1, 2.5);
+
+    Chart.defaults.font.family = "'Plus Jakarta Sans', 'Inter', sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#94A3B8';
+    Chart.defaults.responsive = true;
+    Chart.defaults.maintainAspectRatio = false;
+    Chart.defaults.devicePixelRatio = hiDpi;
+    Chart.defaults.plugins.tooltip.backgroundColor = '#1E293B';
+    Chart.defaults.plugins.tooltip.padding = 12;
+    Chart.defaults.plugins.tooltip.cornerRadius = 10;
+    Chart.defaults.plugins.tooltip.displayColors = false;
+    Chart.defaults.elements.line.borderCapStyle = 'round';
+    Chart.defaults.elements.line.borderJoinStyle = 'round';
+    Chart.defaults.elements.point.hitRadius = 12;
+
+    var dashboardCharts = [];
+
+    function makeAreaGradient(chart, topAlpha, bottomAlpha) {
+        var area = chart.chartArea;
+        if (!area) return 'rgba(139, 21, 56, 0.12)';
+        var g = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+        g.addColorStop(0, 'rgba(139, 21, 56, ' + topAlpha + ')');
+        g.addColorStop(1, 'rgba(139, 21, 56, ' + bottomAlpha + ')');
+        return g;
+    }
+
+    function makeBarGradient(chart) {
+        var area = chart.chartArea;
+        if (!area) return '#8B1538';
+        var g = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+        g.addColorStop(0, 'rgba(166, 30, 69, 0.98)');
+        g.addColorStop(1, 'rgba(139, 21, 56, 0.72)');
+        return g;
+    }
+
+    function axisOptions(suggestedMax) {
+        return {
+            x: {
+                grid: { display: false },
+                border: { display: false },
+                ticks: {
+                    maxRotation: 0,
+                    autoSkip: true,
+                    maxTicksLimit: 7,
+                    font: { size: 12, weight: '600' },
+                    color: '#64748B',
+                    padding: 8
+                }
+            },
+            y: {
+                grid: { color: 'rgba(241, 245, 249, 0.95)', lineWidth: 1 },
+                border: { display: false },
+                beginAtZero: true,
+                suggestedMax: suggestedMax,
+                ticks: {
+                    stepSize: 1,
+                    font: { size: 11 },
+                    color: '#94A3B8',
+                    padding: 10
+                }
+            }
+        };
+    }
+
+    var sparkData = [@string.Join(",", sparkValues)];
+
+    if (!sparkData.length) sparkData = [2, 4, 3, 6, 5, 7, 4];
+
+
+
+    function makeSparkline(id, color, offset) {
+
+        var el = document.getElementById(id);
+
+        if (!el) return;
+
+        var data = sparkData.map(function (v, i) { return Math.max(1, v + ((i + offset) % 3) - 1); });
+
+        new Chart(el, {
+
+            type: 'bar',
+
+            data: {
+
+                labels: data.map(function (_, i) { return i; }),
+
+                datasets: [{
+
+                    data: data,
+
+                    backgroundColor: color,
+
+                    borderRadius: 3,
+
+                    barPercentage: 0.7,
+
+                    categoryPercentage: 0.9
+
+                }]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+
+                scales: {
+
+                    x: { display: false },
+
+                    y: { display: false, min: 0 }
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+
+    makeSparkline('sparkMessages', 'rgba(255,255,255,0.85)', 0);
+
+    makeSparkline('sparkRefills', 'rgba(255,255,255,0.65)', 1);
+
+    makeSparkline('sparkTickets', 'rgba(255,255,255,0.55)', 2);
+
+    makeSparkline('sparkUsers', 'rgba(255,255,255,0.75)', 3);
+
+
+
+    /* Doughnut */
+
+    new Chart(document.getElementById('workloadDonut'), {
+
+        type: 'doughnut',
+
+        data: {
+
+            labels: ['Messages', 'Refills', 'Support'],
+
+            datasets: [{
+
+                data: [@Model.MessageThreads, @Model.PendingRefills, @Model.OpenTickets],
+
+                backgroundColor: [maroon, maroonLight, maroonDark],
+
+                borderWidth: 0,
+
+                hoverOffset: 6
+
+            }]
+
+        },
+
+        options: {
+
+            cutout: '72%',
+
+            plugins: {
+
+                legend: { display: false },
+
+                tooltip: {
+
+                    callbacks: {
+
+                        label: function (ctx) {
+
+                            var sum = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0) || 1;
+
+                            var pct = Math.round(100 * ctx.raw / sum);
+
+                            return ctx.label + ': ' + ctx.raw + ' (' + pct + '%)';
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    });
+
+
+
+    /* Area chart — daily visits (7-day window, hi-DPI) */
+    var areaCtx = document.getElementById('visitsAreaChart');
+    if (areaCtx) {
+        dashboardCharts.push(new Chart(areaCtx, {
+            type: 'line',
+            data: {
+                labels: [@Html.Raw(string.Join(",", trendLabels.Select(l => $"'{l}'")))],
+                datasets: [{
+                    label: 'Visits',
+                    data: [@string.Join(",", engageVisits)],
+                    borderColor: maroon,
+                    backgroundColor: function (ctx) { return makeAreaGradient(ctx.chart, 0.32, 0.03); },
+                    fill: true,
+                    tension: 0.45,
+                    pointRadius: 4,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: maroon,
+                    pointBorderWidth: 2,
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                devicePixelRatio: hiDpi,
+                layout: { padding: { top: 8, right: 12, bottom: 4, left: 4 } },
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) { return ' ' + ctx.parsed.y + ' visits'; }
+                        }
+                    }
+                },
+                scales: axisOptions(@trendSuggestedMax)
+            }
+        }));
+    }
+
+
+
+    /* Engagement pulse — visits + unique users (hi-DPI) */
+    var engageCtx = document.getElementById('engagementChart');
+    if (engageCtx) {
+        dashboardCharts.push(new Chart(engageCtx, {
+            data: {
+                labels: [@Html.Raw(string.Join(",", engageLabels.Select(l => $"'{l}'")))],
+                datasets: [
+                    {
+                        type: 'bar',
+                        label: 'Visits',
+                        data: [@string.Join(",", engageVisits)],
+                        backgroundColor: function (ctx) { return makeBarGradient(ctx.chart); },
+                        borderRadius: { topLeft: 10, topRight: 10, bottomLeft: 4, bottomRight: 4 },
+                        borderSkipped: false,
+                        barPercentage: 0.52,
+                        categoryPercentage: 0.68,
+                        maxBarThickness: 42,
+                        order: 2
+                    },
+                    {
+                        type: 'line',
+                        label: 'Unique users',
+                        data: [@string.Join(",", engageUnique)],
+                        borderColor: '#C41E5A',
+                        backgroundColor: 'rgba(196, 30, 90, 0.06)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#C41E5A',
+                        pointBorderWidth: 2,
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                devicePixelRatio: hiDpi,
+                layout: { padding: { top: 8, right: 12, bottom: 4, left: 4 } },
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                var unit = ctx.dataset.label === 'Visits' ? 'visits' : 'users';
+                                return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y + ' ' + unit;
+                            }
+                        }
+                    }
+                },
+                scales: axisOptions(@trendSuggestedMax)
+            }
+        }));
+    }
+
+    /* Re-render at native resolution after layout + on resize */
+    function refreshDashboardCharts() {
+        dashboardCharts.forEach(function (chart) {
+            chart.options.devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2.5);
+            chart.resize();
+            chart.update('none');
+        });
+    }
+
+    window.addEventListener('resize', function () {
+        window.requestAnimationFrame(refreshDashboardCharts);
+    });
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(refreshDashboardCharts);
+    } else {
+        window.requestAnimationFrame(refreshDashboardCharts);
+    }
+})();
+
+</script>
+
+}
+

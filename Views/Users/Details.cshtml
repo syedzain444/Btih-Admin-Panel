@@ -1,0 +1,73 @@
+@model HospitalAdminPanel.Models.ViewModels.UserDetailsViewModel
+@{
+    ViewData["Title"] = "User Profile";
+    ViewData["HeroTitle"] = Model.Profile?.PatientName ?? "Patient Profile";
+    ViewData["HeroSubtitle"] = $"MR {Model.MrNo}";
+    ViewData["HeroIcon"] = "bi-person-vcard-fill";
+    ViewData["HeroBreadcrumb"] = $"<a href=\"{Url.Action("Index")}\">Patients</a> / {Model.MrNo}";
+}
+
+@section HeroActions {
+    <div class="hero-toolbar">
+        <div class="hero-toolbar-group hero-toolbar-actions">
+            <a asp-action="Index" class="btn-hero">
+                <span class="hero-btn-icon"><i class="bi bi-arrow-left"></i></span>
+                Back to list
+            </a>
+        </div>
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="panel-card">
+            <div class="panel-header"><strong>Profile</strong></div>
+            <div class="panel-body">
+                @if (Model.Profile == null)
+                {
+                    <div class="empty-state py-3"><i class="bi bi-person-x d-block"></i>Patient not found or API returned no data</div>
+                }
+                else
+                {
+                    <p class="mb-1"><span class="text-muted">Name:</span> @(Model.Profile.PatientName ?? "—")</p>
+                    <p class="mb-1"><span class="text-muted">MR No:</span> @(Model.Profile.MRNo ?? Model.MrNo)</p>
+                    <p class="mb-1"><span class="text-muted">Contact:</span> @(Model.Profile.ContactNo ?? "—")</p>
+                    <p class="mb-1"><span class="text-muted">Email:</span> @(Model.Profile.Email ?? "—")</p>
+                    <p class="mb-0"><span class="text-muted">Gender:</span> @(Model.Profile.Gender ?? "—")</p>
+                }
+                @if (Model.MissingAnalyticsApi)
+                {
+                    <hr /><p class="small text-muted mb-0">Visit count, session duration, and engagement metrics require analytics APIs.</p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="panel-card datatable-panel mb-3">
+            <div class="panel-header"><strong>Appointments (@Model.Appointments.Count)</strong></div>
+            <div class="table-responsive">
+                <table class="table table-btih datatable-btih mb-0 w-100">
+                    <thead><tr><th>ID</th><th>Doctor</th><th>Time</th><th>Status</th></tr></thead>
+                    <tbody>
+                    @foreach (var a in Model.Appointments.Take(10))
+                    {
+                        <tr><td>@a.AppointmentId</td><td>@a.DoctorName</td><td>@a.AppointmentTime</td><td>@a.Status</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="panel-card">
+            <div class="panel-header"><strong>Message Threads (@Model.MessageThreads.Count)</strong></div>
+            <ul class="list-group list-group-flush">
+                @foreach (var m in Model.MessageThreads)
+                {
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>@m.Subject</span>
+                        <a asp-controller="Messages" asp-action="Details" asp-route-id="@m.ThreadId" class="small">Open</a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>

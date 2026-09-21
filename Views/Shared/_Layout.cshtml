@@ -1,0 +1,167 @@
+﻿@inject HospitalAdminPanel.Services.ITokenSessionService TokenSession
+@inject Microsoft.Extensions.Options.IOptions<HospitalAdminPanel.Configuration.AdminPanelSettings> PanelSettings
+@{
+    var user = TokenSession.GetUser();
+    var hospital = PanelSettings.Value.HospitalName;
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var initials = user?.DisplayName?.Substring(0, 1) ?? user?.Username?.Substring(0, 1) ?? "A";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - BTIH Admin</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="~/css/admin-theme.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="@(controller.Equals("Account", StringComparison.OrdinalIgnoreCase) ? "login-body" : "app-body")@(controller.Equals("Messages", StringComparison.OrdinalIgnoreCase) ? " messages-module" : "")">
+<div id="appSplash" class="app-splash" aria-live="polite" aria-busy="true">
+    <div class="splash-inner">
+        <div class="splash-logo">B</div>
+        <div class="splash-title">BTIH Admin Portal</div>
+        <div class="splash-subtitle">Bahria Town International Hospital</div>
+        <div class="splash-progress"><div class="splash-progress-bar"></div></div>
+    </div>
+</div>
+<div id="pageLoader" class="page-loader" aria-hidden="true" aria-live="polite">
+    <div class="loader-card">
+        <div class="loader-spinner"></div>
+        <span class="loader-text">Loading...</span>
+    </div>
+</div>
+<div id="navProgress" class="nav-progress" aria-hidden="true"></div>
+@if (controller.Equals("Account", StringComparison.OrdinalIgnoreCase))
+{
+    @RenderBody()
+}
+else
+{
+    <div class="app-shell">
+        <div class="app-bg-decoration" aria-hidden="true"></div>
+        <aside class="icon-rail">
+            <div class="rail-logo" title="BTIH Admin"><span>B</span></div>
+            <a class="rail-link @(controller=="Dashboard"?"active":"")" asp-controller="Dashboard" asp-action="Index" title="Dashboard"><i class="bi bi-house-door-fill"></i></a>
+            <a class="rail-link @(controller=="Messages"?"active":"")" asp-controller="Messages" asp-action="Index" title="Messages"><i class="bi bi-chat-dots-fill"></i></a>
+            <a class="rail-link @(controller=="Appointments"?"active":"")" asp-controller="Appointments" asp-action="Index" title="Appointments"><i class="bi bi-calendar3-event-fill"></i></a>
+            <a class="rail-link @(controller=="Users"?"active":"")" asp-controller="Users" asp-action="Index" title="Users"><i class="bi bi-people-fill"></i></a>
+            <a class="rail-link @(controller=="Reports"?"active":"")" asp-controller="Reports" asp-action="Index" title="Reports"><i class="bi bi-bar-chart-fill"></i></a>
+            <div class="rail-spacer"></div>
+            <a href="#" class="rail-link" title="Settings"><i class="bi bi-gear"></i></a>
+            <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="header-icon-btn border-0" title="Logout"><i class="bi bi-box-arrow-right"></i></button>
+            </form>
+        </aside>
+
+        <aside class="nav-panel" id="navPanel">
+            <div class="workspace-switcher">
+                <span>@hospital</span>
+                <i class="bi bi-chevron-expand text-muted"></i>
+            </div>
+
+            <div class="nav-section-label">Starred</div>
+            <div class="nav-tree">
+                <a asp-controller="Dashboard" asp-action="Index"><i class="bi bi-star-fill nav-star"></i> Overview</a>
+                <a asp-controller="Messages" asp-action="Index"><i class="bi bi-star-fill nav-star"></i> Inbox</a>
+            </div>
+
+            <div class="nav-section-label">Recent</div>
+            <div class="nav-tree">
+                <a asp-controller="Refills" asp-action="Index">Refill queue</a>
+                <a asp-controller="Tickets" asp-action="Index">Support tickets</a>
+            </div>
+
+            <div class="nav-section-label">Hospital modules</div>
+            <div class="nav-tree">
+                <div class="nav-tree-item fw-semibold text-dark"><i class="bi bi-grid"></i> Dashboard</div>
+                <div class="nav-nested">
+                    <a class="@(controller=="Dashboard" && action=="Index" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">Overview</a>
+                    <a class="@(controller=="Messages"?"active":"")" asp-controller="Messages" asp-action="Index">
+                        Messages <span class="nav-badge">@((ViewData["MsgCount"] as int?) ?? 0)</span>
+                    </a>
+                    <a class="@(controller=="Appointments"?"active":"")" asp-controller="Appointments" asp-action="Index">Appointments</a>
+                    <a class="@(controller=="Users"?"active":"")" asp-controller="Users" asp-action="Index">Patients</a>
+                </div>
+                <div class="nav-tree-item fw-semibold text-dark mt-2"><i class="bi bi-clipboard-data"></i> Operations</div>
+                <div class="nav-nested">
+                    <a class="@(controller=="Refills"?"active":"")" asp-controller="Refills" asp-action="Index">
+                        Refills <span class="nav-dot"></span>
+                    </a>
+                    <a class="@(controller=="Tickets"?"active":"")" asp-controller="Tickets" asp-action="Index">Support</a>
+                    <a class="@(controller=="Reports"?"active":"")" asp-controller="Reports" asp-action="Index">Reports &amp; audit</a>
+                </div>
+            </div>
+
+            <div class="nav-section-label mt-3">System</div>
+            <div class="nav-tree">
+                <a href="#"><i class="bi bi-link-45deg"></i> API health</a>
+            </div>
+        </aside>
+
+        <div class="main-wrap">
+            <header class="top-header">
+                <button type="button" class="header-icon-btn sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
+                <div class="search-pill">
+                    <i class="bi bi-search"></i>
+                    <input type="search" placeholder="Try searching 'patients', 'appointments'..." disabled />
+                </div>
+                <div class="header-actions">
+                    <button type="button" class="header-icon-btn"><i class="bi bi-sliders"></i></button>
+                    <a asp-controller="Messages" asp-action="Index" class="header-icon-btn text-decoration-none"><i class="bi bi-bell"></i></a>
+                    <div class="header-avatar">@initials</div>
+                    <button type="button" class="btn-accent-circle" title="Quick action"><i class="bi bi-plus-lg"></i></button>
+                </div>
+            </header>
+            <main class="content-area">
+                @if (TempData["Success"] != null) { <input type="hidden" id="tempSuccess" value="@TempData["Success"]" /> }
+                @if (TempData["Error"] != null) { <input type="hidden" id="tempError" value="@TempData["Error"]" /> }
+                <div class="page-transition-wrap" id="pageContent">
+                    @if (ViewData["HeroTitle"] != null)
+                    {
+                        <section class="page-hero">
+                            <div class="page-hero-inner">
+                                <div class="page-hero-left">
+                                    <div class="page-hero-icon">
+                                        <i class="bi @(ViewData["HeroIcon"] ?? "bi-grid")"></i>
+                                    </div>
+                                    <div class="page-hero-text">
+                                        @if (ViewData["HeroBreadcrumb"] != null)
+                                        {
+                                            <nav class="page-hero-breadcrumb">@Html.Raw(ViewData["HeroBreadcrumb"])</nav>
+                                        }
+                                        <h1 class="page-hero-title">@ViewData["HeroTitle"]</h1>
+                                        @if (ViewData["HeroSubtitle"] != null)
+                                        {
+                                            <p class="page-hero-subtitle">@ViewData["HeroSubtitle"]</p>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="page-hero-actions">
+                                    @await RenderSectionAsync("HeroActions", required: false)
+                                </div>
+                            </div>
+                        </section>
+                    }
+                    @RenderBody()
+                </div>
+            </main>
+        </div>
+    </div>
+}
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="~/js/admin.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

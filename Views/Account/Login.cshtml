@@ -1,0 +1,108 @@
+@model HospitalAdminPanel.Models.ViewModels.LoginViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Sign In";
+}
+
+<div class="login-page">
+    <div class="login-visual">
+        <div class="login-visual-waves" aria-hidden="true"></div>
+        <div class="login-visual-photo" aria-hidden="true"></div>
+
+        <header class="login-visual-header">
+            <img src="~/images/btih-logo.png" asp-append-version="true" alt="Bahria International Hospitals" class="login-logo-btih" />
+        </header>
+
+        <div class="login-visual-content">
+            <div class="login-visual-badge"><i class="bi bi-building"></i> Enterprise Portal</div>
+            <h1>Hospital operations,<br />beautifully managed.</h1>
+            <p>Secure admin access for appointments, patient messaging, refills, and analytics — all in one place.</p>
+            <div class="login-feature-chips">
+                <span><i class="bi bi-shield-check"></i> RBAC secured</span>
+                <span><i class="bi bi-lightning-charge"></i> Live API</span>
+                <span><i class="bi bi-bar-chart-line"></i> Analytics</span>
+            </div>
+        </div>
+
+        <footer class="login-visual-footer">
+            <i class="bi bi-activity"></i>
+            <span>BETTER CARE • SMARTER OPERATIONS</span>
+        </footer>
+    </div>
+
+    <div class="login-form-side">
+        <div class="login-form-deco login-form-deco--wave" aria-hidden="true"></div>
+        <div class="login-form-deco login-form-deco--dots" aria-hidden="true"></div>
+        <div class="login-portal-tag">BTIH • ADMIN PORTAL</div>
+
+        <div class="login-card">
+            <div class="login-brand">
+                <div class="login-logo-mark login-logo-mark--bahria">
+                    <img src="~/images/bahria-karachiv-logo.png" asp-append-version="true" alt="Bahria Town Karachi" />
+                </div>
+                <h2>Bahria Town International Hospital</h2>
+                <p>Admin Portal — sign in to continue</p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-glass alert-danger-soft">@Model.ErrorMessage</div>
+            }
+            @if (ViewData["ShowDevHints"] as bool? == true)
+            {
+                <div class="alert alert-glass alert-dev-hint">
+                    <strong>Dev:</strong> API <code>@ViewData["ApiBaseUrl"]</code> · <code>admin</code> / <code>Admin@BTIH2026!</code>
+                </div>
+            }
+
+            <form asp-action="Login" method="post" class="login-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+                <div class="login-field">
+                    <label asp-for="Username">Username</label>
+                    <div class="login-input-wrap">
+                        <i class="bi bi-person"></i>
+                        <input asp-for="Username" class="login-input" autocomplete="username" placeholder="Enter username" />
+                    </div>
+                </div>
+
+                <div class="login-field">
+                    <label asp-for="Password">Password</label>
+                    <div class="login-input-wrap">
+                        <i class="bi bi-lock"></i>
+                        <input asp-for="Password" type="password" class="login-input" id="loginPassword" autocomplete="current-password" placeholder="Enter password" />
+                        <button type="button" class="login-password-toggle" id="togglePassword" aria-label="Show password">
+                            <i class="bi bi-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-submit-btn">
+                    <span>Sign In</span>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="login-card-footer">
+                <span>Secure • Reliable • Trusted</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var btn = document.getElementById('togglePassword');
+    var input = document.getElementById('loginPassword');
+    if (!btn || !input) return;
+    btn.addEventListener('click', function () {
+        var isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        btn.querySelector('i').className = isPassword ? 'bi bi-eye' : 'bi bi-eye-slash';
+        btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+    });
+})();
+</script>
+}

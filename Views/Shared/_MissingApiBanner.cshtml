@@ -1,0 +1,13 @@
+@model IEnumerable<HospitalAdminPanel.Models.ViewModels.MissingApiNotice>
+@if (Model != null && Model.Any())
+{
+    <div class="missing-api-banner">
+        <h6><i class="bi bi-exclamation-triangle-fill me-1"></i> Required API — not yet available on backend</h6>
+        <ul class="mb-0 small">
+            @foreach (var item in Model)
+            {
+                <li><strong>@item.Feature:</strong> @item.Description</li>
+            }
+        </ul>
+    </div>
+}

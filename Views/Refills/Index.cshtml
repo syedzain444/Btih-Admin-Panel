@@ -1,0 +1,45 @@
+@model HospitalAdminPanel.Models.ViewModels.RefillListViewModel
+@{
+    ViewData["Title"] = "Medication Refills";
+    ViewData["HeroTitle"] = "Pending Refills";
+    ViewData["HeroSubtitle"] = "Review and action medication refill requests";
+    ViewData["HeroIcon"] = "bi-capsule";
+    ViewData["HeroBreadcrumb"] = "Home / Refills";
+}
+
+<div class="panel-card datatable-panel">
+    <div class="table-responsive">
+        <table class="table table-btih datatable-btih mb-0 w-100">
+            <thead><tr><th>ID</th><th>MR No</th><th>Medication</th><th>Qty</th><th>Status</th><th>Requested</th><th class="no-sort">Actions</th></tr></thead>
+            <tbody>
+            @foreach (var r in Model.Refills)
+            {
+                <tr>
+                    <td>@r.RefillId</td>
+                    <td>@r.MrNo</td>
+                    <td>@(r.MedicationName ?? "—")</td>
+                    <td>@(r.Quantity?.ToString() ?? "—")</td>
+                    <td><span class="badge-status badge-pending">@r.Status</span></td>
+                    <td>@r.CreatedAt.ToString("dd MMM yyyy")</td>
+                    <td>
+                        <form asp-action="UpdateStatus" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="refillId" value="@r.RefillId" />
+                            <input type="hidden" name="status" value="APPROVED" />
+                            <input type="hidden" name="statusMessage" value="Approved by admin" />
+                            <button type="button" class="btn btn-sm btn-action btn-action-approve" data-confirm="Approve this refill request?" data-confirm-title="Approve Refill" data-confirm-yes="Approve"><i class="bi bi-check-lg"></i> Approve</button>
+                        </form>
+                        <form asp-action="UpdateStatus" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="refillId" value="@r.RefillId" />
+                            <input type="hidden" name="status" value="REJECTED" />
+                            <input type="hidden" name="statusMessage" value="Rejected by admin" />
+                            <button type="button" class="btn btn-sm btn-action btn-action-reject" data-confirm="Reject this refill request?" data-confirm-title="Reject Refill" data-confirm-icon="error" data-confirm-yes="Reject"><i class="bi bi-x-lg"></i> Reject</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,42 @@
+@model HospitalAdminPanel.Models.ViewModels.MessageListViewModel
+@{
+    ViewData["Title"] = "Messages";
+    var sidebar = new HospitalAdminPanel.Models.ViewModels.ChatSidebarViewModel
+    {
+        Threads = Model.Threads,
+        Search = Model.Search,
+        StatusFilter = Model.StatusFilter,
+        AllCount = Model.AllCount,
+        UnreadCount = Model.UnreadCount,
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/messages-chat.css" asp-append-version="true" />
+}
+
+<div class="messages-page">
+    @if (Model.MissingThreadMessagesApi)
+    {
+        <div class="missing-api-banner mb-3">
+            <h6><i class="bi bi-exclamation-triangle-fill me-1"></i> Required API</h6>
+            <p class="mb-0 small">@HospitalAdminPanel.Helpers.MissingApiCatalog.MessageThreadHistory.Description</p>
+        </div>
+    }
+
+    <div class="chat-app">
+        <partial name="_ChatSidebar" model="sidebar" />
+
+        <main class="chat-main chat-main--empty">
+            <div class="chat-empty-state">
+                <div class="chat-empty-icon"><i class="bi bi-chat-heart"></i></div>
+                <h3>Select a conversation</h3>
+                <p>Choose a patient thread from the inbox to view messages and reply as staff.</p>
+            </div>
+        </main>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/messages-chat.js" asp-append-version="true"></script>
+}

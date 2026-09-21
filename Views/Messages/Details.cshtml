@@ -1,0 +1,256 @@
+@model HospitalAdminPanel.Models.ViewModels.MessageReplyViewModel
+@{
+    ViewData["Title"] = "Message Thread";
+
+    string Initials(string mrNo, string subject)
+    {
+        if (!string.IsNullOrWhiteSpace(mrNo))
+        {
+            var parts = mrNo.Split('-', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2) return parts[^1][..Math.Min(2, parts[^1].Length)].ToUpperInvariant();
+        }
+        return string.IsNullOrWhiteSpace(subject) ? "?" : subject.Trim()[..Math.Min(2, subject.Trim().Length)].ToUpperInvariant();
+    }
+
+    string BubbleInitials(string? name, string senderType)
+    {
+        if (!string.IsNullOrWhiteSpace(name))
+            return name.Trim()[..Math.Min(2, name.Trim().Length)].ToUpperInvariant();
+        return senderType.StartsWith("STAFF", StringComparison.OrdinalIgnoreCase) ? "BT" : "PA";
+    }
+
+    string DateLabel(DateTime dt)
+    {
+        var today = DateTime.Today;
+        if (dt.Date == today) return "Today";
+        if (dt.Date == today.AddDays(-1)) return "Yesterday";
+        return dt.ToString("dd MMM yyyy").ToUpperInvariant();
+    }
+
+    var groupedMessages = Model.Messages.OrderBy(m => m.CreatedAt).GroupBy(m => m.CreatedAt.Date).ToList();
+    var statusClass = Model.Thread.Status.Contains("CLOSED", StringComparison.OrdinalIgnoreCase) ? "badge-resolved" : "badge-open";
+    var sidebar = new HospitalAdminPanel.Models.ViewModels.ChatSidebarViewModel
+    {
+        Threads = Model.Threads,
+        ActiveThreadId = Model.Thread.ThreadId,
+        AllCount = Model.AllCount,
+        UnreadCount = Model.UnreadCount,
+    };
+    var patientName = Model.PatientProfile?.PatientName ?? "—";
+    var patientContact = Model.PatientProfile?.ContactNo ?? "—";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/messages-chat.css" asp-append-version="true" />
+}
+
+<div class="messages-page">
+    <div class="chat-app chat-app--thread">
+        <partial name="_ChatSidebar" model="sidebar" />
+
+        <main class="chat-main">
+            <header class="chat-header">
+                <div class="chat-header-left">
+                    <a asp-action="Index" class="chat-header-btn chat-back-btn" title="Back"><i class="bi bi-arrow-left"></i></a>
+                    <div class="chat-header-avatar">@Initials(Model.Thread.MrNo, Model.Thread.Subject)</div>
+                    <div class="chat-header-info">
+                        <div class="chat-header-title-row">
+                            <h3>@Model.Thread.Subject</h3>
+                            <span class="badge-status @statusClass">@Model.Thread.Status</span>
+                        </div>
+                        <p>@Model.Thread.MrNo · @(Model.Thread.Category ?? "General")</p>
+                    </div>
+                </div>
+                <div class="chat-header-actions">
+                    <button type="button" class="chat-header-btn" title="Call" disabled><i class="bi bi-telephone"></i></button>
+                    <button type="button" class="chat-header-btn" title="Video" disabled><i class="bi bi-camera-video"></i></button>
+                    <a asp-controller="Users" asp-action="Details" asp-route-mrNo="@Model.Thread.MrNo" class="chat-header-btn" title="Patient profile"><i class="bi bi-person"></i></a>
+                    <button type="button" class="chat-header-btn" title="More"><i class="bi bi-three-dots"></i></button>
+                </div>
+            </header>
+
+            <div class="chat-messages" id="chatMessages">
+                @if (!Model.Messages.Any())
+                {
+                    <div class="chat-messages-empty">
+                        <i class="bi bi-chat-left-dots"></i>
+                        <p>No messages yet. Start the conversation below.</p>
+                    </div>
+                }
+                @foreach (var group in groupedMessages)
+                {
+                    <div class="chat-date-divider"><span>@DateLabel(group.Key)</span></div>
+                    @foreach (var message in group)
+                    {
+                        var isStaff = message.SenderType.Equals("STAFF", StringComparison.OrdinalIgnoreCase);
+                        <div class="chat-bubble-row @(isStaff ? "is-staff" : "")">
+                            @if (!isStaff)
+                            {
+                                <div class="chat-bubble-avatar chat-bubble-avatar--patient">@BubbleInitials(message.SenderName, message.SenderType)</div>
+                            }
+                            <div class="chat-bubble-wrap">
+                                <div class="chat-bubble-sender">
+                                    @(isStaff ? (message.SenderName ?? "Staff") : "Patient") · @message.CreatedAt.ToString("HH:mm")
+                                </div>
+                                <div class="chat-bubble @(isStaff ? "chat-bubble--outgoing" : "chat-bubble--incoming")">
+                                    @message.Body
+                                    @foreach (var attachment in message.Attachments)
+                                    {
+                                        <div class="chat-bubble-attachment"><i class="bi bi-paperclip"></i> @attachment.FileName</div>
+                                    }
+                                </div>
+                                <div class="chat-bubble-footer">
+                                    <span>@message.CreatedAt.ToString("HH:mm")</span>
+                                    @if (isStaff)
+                                    {
+                                        <i class="bi bi-check2-all chat-read-receipt"></i>
+                                    }
+                                </div>
+                            </div>
+                            @if (isStaff)
+                            {
+                                <div class="chat-bubble-avatar chat-bubble-avatar--staff">@BubbleInitials(message.SenderName, message.SenderType)</div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+
+            <footer class="chat-composer">
+                <form asp-action="Reply" method="post" class="chat-composer-form" id="chatComposerForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Thread.ThreadId" />
+                    <input type="hidden" asp-for="Thread.Subject" />
+                    <input type="hidden" asp-for="Thread.MrNo" />
+                    <div class="chat-reply-as">
+                        <i class="bi bi-person-circle"></i>
+                        <span>Replying as</span>
+                        <input asp-for="StaffName" id="StaffName" class="chat-reply-as-input" placeholder="Staff name" />
+                    </div>
+                    <div class="chat-composer-bar">
+                        <button type="button" class="chat-composer-icon" title="Attach" disabled><i class="bi bi-paperclip"></i></button>
+                        <textarea asp-for="Body" rows="1" placeholder="Type your message..." required aria-label="Message"></textarea>
+                        <button type="button" class="chat-composer-icon" title="Emoji" disabled><i class="bi bi-emoji-smile"></i></button>
+                        <button type="submit" class="chat-send-btn" title="Send message"><i class="bi bi-send-fill"></i></button>
+                    </div>
+                </form>
+            </footer>
+        </main>
+
+        <aside class="chat-info">
+            <div class="chat-info-header">
+                <div class="chat-info-header-left">
+                    <span class="chat-info-header-icon"><i class="bi bi-file-earmark-text"></i></span>
+                    <h4>Thread Details</h4>
+                </div>
+                <button type="button" class="chat-info-menu-btn" title="Options"><i class="bi bi-three-dots"></i></button>
+            </div>
+
+            <div class="chat-info-scroll">
+                <div class="chat-info-banner">
+                    <div class="chat-info-banner-deco" aria-hidden="true"></div>
+                    <div class="chat-info-banner-inner">
+                        <div class="chat-info-banner-avatar-wrap">
+                            <div class="chat-info-banner-avatar">
+                                <span class="chat-info-banner-avatar-icon"><i class="bi bi-calendar3-event"></i></span>
+                            </div>
+                            <span class="chat-info-online-dot" aria-hidden="true"></span>
+                        </div>
+                        <div class="chat-info-banner-text">
+                            <h3>@Model.Thread.Subject</h3>
+                            <p>@Model.Thread.MrNo</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-info-card">
+                    <div class="chat-info-row">
+                        <div class="chat-info-row-left">
+                            <span class="chat-info-ico chat-info-ico--tag"><i class="bi bi-tag"></i></span>
+                            <span class="chat-info-row-label">Category</span>
+                        </div>
+                        <span class="chat-info-row-value">@(Model.Thread.Category ?? "General")</span>
+                    </div>
+                    <div class="chat-info-row">
+                        <div class="chat-info-row-left">
+                            <span class="chat-info-ico chat-info-ico--status"><i class="bi bi-circle-fill"></i></span>
+                            <span class="chat-info-row-label">Status</span>
+                        </div>
+                        <span class="chat-info-status-pill @(statusClass == "badge-resolved" ? "is-resolved" : "is-open")">
+                            <i class="bi bi-circle-fill"></i> @Model.Thread.Status
+                        </span>
+                    </div>
+                    <div class="chat-info-row">
+                        <div class="chat-info-row-left">
+                            <span class="chat-info-ico chat-info-ico--calendar"><i class="bi bi-calendar3"></i></span>
+                            <span class="chat-info-row-label">Created</span>
+                        </div>
+                        <span class="chat-info-row-value">@Model.Thread.CreatedAt.ToString("dd MMM yyyy")</span>
+                    </div>
+                    <div class="chat-info-row">
+                        <div class="chat-info-row-left">
+                            <span class="chat-info-ico chat-info-ico--clock"><i class="bi bi-clock"></i></span>
+                            <span class="chat-info-row-label">Last update</span>
+                        </div>
+                        <span class="chat-info-row-value">@Model.Thread.UpdatedAt.ToString("dd MMM yyyy HH:mm")</span>
+                    </div>
+                    <div class="chat-info-row chat-info-row--last">
+                        <div class="chat-info-row-left">
+                            <span class="chat-info-ico chat-info-ico--messages"><i class="bi bi-chat-dots"></i></span>
+                            <span class="chat-info-row-label">Messages</span>
+                        </div>
+                        <span class="chat-info-row-value" id="chatMessageCount">@Model.Messages.Count</span>
+                    </div>
+                </div>
+
+                <div class="chat-info-card chat-info-card--patient">
+                    <div class="chat-info-patient-head">
+                        <span class="chat-info-ico chat-info-ico--patient-head"><i class="bi bi-person"></i></span>
+                        <span>Patient Information</span>
+                    </div>
+                    <div class="chat-info-patient-body">
+                        <div class="chat-info-row">
+                            <div class="chat-info-row-left">
+                                <span class="chat-info-ico chat-info-ico--mr"><i class="bi bi-person-vcard"></i></span>
+                                <span class="chat-info-row-label">MR No.</span>
+                            </div>
+                            <span class="chat-info-row-value">@Model.Thread.MrNo</span>
+                        </div>
+                        <div class="chat-info-row">
+                            <div class="chat-info-row-left">
+                                <span class="chat-info-ico chat-info-ico--name"><i class="bi bi-person"></i></span>
+                                <span class="chat-info-row-label">Name</span>
+                            </div>
+                            <span class="chat-info-row-value">@patientName</span>
+                        </div>
+                        <div class="chat-info-row chat-info-row--last">
+                            <div class="chat-info-row-left">
+                                <span class="chat-info-ico chat-info-ico--contact"><i class="bi bi-telephone"></i></span>
+                                <span class="chat-info-row-label">Contact</span>
+                            </div>
+                            <span class="chat-info-row-value">@patientContact</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-notes-box">
+                    <div class="chat-notes-deco" aria-hidden="true"></div>
+                    <i class="bi bi-info-circle chat-notes-icon"></i>
+                    <p>Use this thread for appointment coordination, reports, and patient follow-ups.</p>
+                </div>
+            </div>
+
+            <div class="chat-info-actions">
+                <a asp-controller="Users" asp-action="Details" asp-route-mrNo="@Model.Thread.MrNo" class="chat-profile-btn">
+                    <span class="chat-profile-btn-icon"><i class="bi bi-person"></i></span>
+                    <span class="chat-profile-btn-text">View Patient Profile</span>
+                    <span class="chat-profile-btn-arrow"><i class="bi bi-arrow-right"></i></span>
+                </a>
+            </div>
+        </aside>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/messages-chat.js" asp-append-version="true"></script>
+}

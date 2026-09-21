@@ -1,0 +1,61 @@
+@model HospitalAdminPanel.Models.ViewModels.UserListViewModel
+@{
+    ViewData["Title"] = "Users";
+    ViewData["HeroTitle"] = "Patients";
+    ViewData["HeroSubtitle"] = "Portal user directory and registration records";
+    ViewData["HeroIcon"] = "bi-people-fill";
+    ViewData["HeroBreadcrumb"] = "Home / User management";
+}
+
+@section HeroActions {
+    <form method="get" class="hero-toolbar-form">
+        <div class="hero-toolbar-group">
+            <label class="hero-input-chip">
+                <i class="bi bi-search"></i>
+                <input name="search" value="@Model.Search" class="hero-field-input hero-field-input--lg" placeholder="Search MR, name, or phone" aria-label="Search patients" />
+            </label>
+        </div>
+        <div class="hero-toolbar-divider" aria-hidden="true"></div>
+        <div class="hero-toolbar-group hero-toolbar-actions">
+            <button class="btn-hero-solid" type="submit">
+                <span class="hero-btn-icon hero-btn-icon-solid"><i class="bi bi-search"></i></span>
+                Search
+            </button>
+        </div>
+    </form>
+}
+
+@if (Model.MissingListAllApi)
+{
+    <div class="missing-api-banner mb-3">
+        <h6><i class="bi bi-exclamation-triangle-fill me-1"></i> User listing unavailable</h6>
+        <p class="mb-0 small">@Model.InfoMessage</p>
+    </div>
+}
+
+@if (Model.TotalRecords > 0)
+{
+    <div class="small text-muted mb-3">@Model.TotalRecords portal user(s) found</div>
+}
+
+<div class="panel-card datatable-panel">
+    <div class="table-responsive">
+        <table class="table table-btih datatable-btih mb-0 w-100">
+            <thead><tr><th>MR No</th><th>Name</th><th>Contact</th><th>Source</th><th>Registered</th><th class="no-sort">Actions</th></tr></thead>
+            <tbody>
+            @foreach (var user in Model.Users)
+            {
+                <tr>
+                    <td>@user.MrNo</td>
+                    <td>@(user.PatientName ?? "—")</td>
+                    <td>@(user.ContactNo ?? "—")</td>
+                    <td><span class="badge bg-light text-dark">@user.Source</span></td>
+                    <td>@(user.RegisteredAt?.ToString("dd MMM yyyy") ?? "—")</td>
+                    <td><a asp-action="Details" asp-route-mrNo="@user.MrNo" class="btn btn-sm btn-action btn-action-view"><i class="bi bi-eye"></i> View</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
