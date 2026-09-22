@@ -135,7 +135,33 @@ public class MessagesController : Controller
 
     {
 
-        if (model.Thread.ThreadId <= 0 || string.IsNullOrWhiteSpace(model.Body))
+        if (model.Thread.ThreadId <= 0)
+
+        {
+
+            if (IsAjaxRequest())
+
+            {
+
+                return BadRequest(new { success = false, error = "Invalid message thread." });
+
+            }
+
+
+
+            model.ErrorMessage = "Invalid message thread.";
+
+            model.Messages = await _apiFactory.Messages.GetThreadMessagesAsync(model.Thread.ThreadId, cancellationToken);
+
+            model.Threads = (await _apiFactory.Messages.GetThreadsAsync(cancellationToken)).OrderByDescending(t => t.UpdatedAt).ToList();
+
+            return View("Details", model);
+
+        }
+
+
+
+        if (string.IsNullOrWhiteSpace(model.Body))
 
         {
 
@@ -238,6 +264,30 @@ public class MessagesController : Controller
             return View("Details", model);
 
         }
+
+    }
+
+
+
+    [HttpGet]
+
+    public async Task<IActionResult> Poll(int id, int afterMessageId, CancellationToken cancellationToken)
+
+    {
+
+        var messages = await _apiFactory.Messages.GetThreadMessagesAsync(id, cancellationToken);
+
+        var incoming = messages
+
+            .Where(m => m.MessageId > afterMessageId)
+
+            .OrderBy(m => m.CreatedAt)
+
+            .ToList();
+
+
+
+        return Json(new { success = true, messages = incoming });
 
     }
 

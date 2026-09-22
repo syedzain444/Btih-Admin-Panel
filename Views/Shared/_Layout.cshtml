@@ -23,7 +23,7 @@
 <body class="@(controller.Equals("Account", StringComparison.OrdinalIgnoreCase) ? "login-body" : "app-body")@(controller.Equals("Messages", StringComparison.OrdinalIgnoreCase) ? " messages-module" : "")">
 <div id="appSplash" class="app-splash" aria-live="polite" aria-busy="true">
     <div class="splash-inner">
-        <div class="splash-logo">B</div>
+        <img src="~/images/Hospital-Logo-w.png" asp-append-version="true" alt="Bahria Town International Hospital Karachi" class="splash-logo-img" />
         <div class="splash-title">BTIH Admin Portal</div>
         <div class="splash-subtitle">Bahria Town International Hospital</div>
         <div class="splash-progress"><div class="splash-progress-bar"></div></div>
@@ -45,7 +45,9 @@ else
     <div class="app-shell">
         <div class="app-bg-decoration" aria-hidden="true"></div>
         <aside class="icon-rail">
-            <div class="rail-logo" title="BTIH Admin"><span>B</span></div>
+            <div class="rail-logo" title="BTIH Admin">
+                <img src="~/images/hospital-logo.png" asp-append-version="true" alt="Bahria Town International Hospital Karachi" class="rail-logo-img" />
+            </div>
             <a class="rail-link @(controller=="Dashboard"?"active":"")" asp-controller="Dashboard" asp-action="Index" title="Dashboard"><i class="bi bi-house-door-fill"></i></a>
             <a class="rail-link @(controller=="Messages"?"active":"")" asp-controller="Messages" asp-action="Index" title="Messages"><i class="bi bi-chat-dots-fill"></i></a>
             <a class="rail-link @(controller=="Appointments"?"active":"")" asp-controller="Appointments" asp-action="Index" title="Appointments"><i class="bi bi-calendar3-event-fill"></i></a>
