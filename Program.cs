@@ -1,6 +1,19 @@
 using HospitalAdminPanel.Extensions;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 8_000_000;
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+});
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 8_000_000;
+});
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddAdminPanelServices(builder.Configuration);

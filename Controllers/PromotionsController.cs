@@ -39,6 +39,14 @@ public class PromotionsController : Controller
                 ApiBaseUrl = _apiSettings.BaseUrl.TrimEnd('/'),
             });
         }
+        catch (Exception ex)
+        {
+            TempData["Error"] = $"Could not load promotions: {ex.Message}";
+            return View(new PromotionListViewModel
+            {
+                ApiBaseUrl = _apiSettings.BaseUrl.TrimEnd('/'),
+            });
+        }
     }
 
     [HttpGet]
@@ -74,7 +82,7 @@ public class PromotionsController : Controller
 
         try
         {
-            using var content = BuildMultipart(model, image);
+            var content = await BuildMultipartAsync(model, image, cancellationToken);
             await _apiFactory.Promotions.CreateAsync(content, cancellationToken);
             TempData["Success"] = "Promotion created.";
             return RedirectToAction(nameof(Index));
@@ -82,6 +90,12 @@ public class PromotionsController : Controller
         catch (ApiException ex)
         {
             TempData["Error"] = ex.Message;
+            model.ApiBaseUrl = _apiSettings.BaseUrl.TrimEnd('/');
+            return View("Form", model);
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = $"Could not create promotion: {ex.Message}";
             model.ApiBaseUrl = _apiSettings.BaseUrl.TrimEnd('/');
             return View("Form", model);
         }
@@ -138,7 +152,7 @@ public class PromotionsController : Controller
 
         try
         {
-            using var content = BuildMultipart(model, image);
+            var content = await BuildMultipartAsync(model, image, cancellationToken);
             await _apiFactory.Promotions.UpdateAsync(id, content, cancellationToken);
             TempData["Success"] = "Promotion updated.";
             return RedirectToAction(nameof(Index));
@@ -146,6 +160,12 @@ public class PromotionsController : Controller
         catch (ApiException ex)
         {
             TempData["Error"] = ex.Message;
+            model.ApiBaseUrl = _apiSettings.BaseUrl.TrimEnd('/');
+            return View("Form", model);
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = $"Could not update promotion: {ex.Message}";
             model.ApiBaseUrl = _apiSettings.BaseUrl.TrimEnd('/');
             return View("Form", model);
         }
@@ -168,7 +188,10 @@ public class PromotionsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    private static MultipartFormDataContent BuildMultipart(PromotionFormViewModel model, IFormFile? image)
+    private static async Task<MultipartFormDataContent> BuildMultipartAsync(
+        PromotionFormViewModel model,
+        IFormFile? image,
+        CancellationToken cancellationToken)
     {
         var content = new MultipartFormDataContent
         {
@@ -190,11 +213,14 @@ public class PromotionsController : Controller
 
         if (image != null && image.Length > 0)
         {
-            var streamContent = new StreamContent(image.OpenReadStream());
-            streamContent.Headers.ContentType =
+            using var stream = image.OpenReadStream();
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer, cancellationToken);
+            var fileContent = new ByteArrayContent(buffer.ToArray());
+            fileContent.Headers.ContentType =
                 new System.Net.Http.Headers.MediaTypeHeaderValue(
                     string.IsNullOrWhiteSpace(image.ContentType) ? "application/octet-stream" : image.ContentType);
-            content.Add(streamContent, "image", image.FileName);
+            content.Add(fileContent, "image", image.FileName);
         }
 
         return content;

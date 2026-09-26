@@ -143,34 +143,41 @@ public class ApiClient : IApiClient
         MultipartFormDataContent content,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient();
-        using var request = new HttpRequestMessage(method, path.TrimStart('/'));
-        ApplyAuth(request);
-        request.Content = content;
-
-        using var response = await client.SendAsync(request, cancellationToken);
-        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        try
         {
-            _tokenSession.Clear();
-            throw new ApiException(401, "Session expired. Please sign in again.", responseBody);
-        }
+            using var client = CreateClient();
+            using var request = new HttpRequestMessage(method, path.TrimStart('/'));
+            ApplyAuth(request);
+            request.Content = content;
 
-        if (!response.IsSuccessStatusCode)
+            using var response = await client.SendAsync(request, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                _tokenSession.Clear();
+                throw new ApiException(401, "Session expired. Please sign in again.", responseBody);
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new ApiException(
+                    (int)response.StatusCode,
+                    TryExtractMessage(responseBody) ?? $"API request failed ({(int)response.StatusCode}).",
+                    responseBody);
+            }
+
+            if (typeof(T) == typeof(object) || string.IsNullOrWhiteSpace(responseBody))
+            {
+                return default;
+            }
+
+            return JsonSerializer.Deserialize<T>(responseBody, JsonOptions);
+        }
+        finally
         {
-            throw new ApiException(
-                (int)response.StatusCode,
-                TryExtractMessage(responseBody) ?? $"API request failed ({(int)response.StatusCode}).",
-                responseBody);
+            content.Dispose();
         }
-
-        if (typeof(T) == typeof(object) || string.IsNullOrWhiteSpace(responseBody))
-        {
-            return default;
-        }
-
-        return JsonSerializer.Deserialize<T>(responseBody, JsonOptions);
     }
 
     private void ApplyAuth(HttpRequestMessage request)
