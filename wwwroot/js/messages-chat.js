@@ -88,16 +88,28 @@
         }
     });
 
+    var chatSending = false;
+
+    function getLastMessageId() {
+        return parseInt($('#chatMessages').data('last-message-id'), 10) || 0;
+    }
+
+    function setLastMessageId(id) {
+        var n = parseInt(id, 10) || 0;
+        if (n > getLastMessageId()) {
+            $('#chatMessages').data('last-message-id', n);
+        }
+    }
+
     /* ── AJAX send ── */
     var $form = $('.chat-composer-form');
     if ($form.length) {
         var $textarea = $form.find('textarea[name="Body"]');
         var $sendBtn = $form.find('.chat-send-btn');
-        var sending = false;
 
         $form.on('submit', function (e) {
             e.preventDefault();
-            if (sending) return false;
+            if (chatSending) return false;
 
             var body = ($textarea.val() || '').trim();
             if (!body) return false;
@@ -105,6 +117,7 @@
             var staffName = ($form.find('[name="StaffName"]').val() || 'Staff').trim();
             var $container = $('#chatMessages');
             var threadId = $form.find('[name="Thread.ThreadId"]').val();
+            var formData = $form.serialize();
             var timeLabel = formatTime(new Date());
             var $pending = $(buildBubbleHtml(body, staffName, 'STAFF', timeLabel, true));
 
@@ -115,19 +128,25 @@
             updateSidebarPreview(body, threadId);
             incrementMessageCount();
 
-            sending = true;
+            chatSending = true;
             $sendBtn.prop('disabled', true).addClass('is-sending');
 
             $.ajax({
                 url: $form.attr('action'),
                 method: 'POST',
-                data: $form.serialize(),
+                data: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 dataType: 'json'
             }).done(function (res) {
                 $pending.removeClass('is-pending');
-                if (res && res.message && res.message.createdAt) {
-                    $pending.find('.chat-bubble-footer span').text(formatTime(new Date(res.message.createdAt)));
+                if (res && res.message) {
+                    if (res.message.createdAt) {
+                        $pending.find('.chat-bubble-footer span').text(formatTime(new Date(res.message.createdAt)));
+                    }
+                    if (res.message.messageId) {
+                        setLastMessageId(res.message.messageId);
+                        $pending.attr('data-message-id', res.message.messageId);
+                    }
                 }
                 $('#chatComposerError').hide();
             }).fail(function (xhr) {
@@ -139,7 +158,7 @@
                 } catch (ex) { /* ignore */ }
                 showComposerError(err);
             }).always(function () {
-                sending = false;
+                chatSending = false;
                 $sendBtn.prop('disabled', false).removeClass('is-sending');
                 $textarea.focus();
             });
@@ -161,6 +180,75 @@
 
         scrollChatToBottom();
         $textarea.focus();
+    }
+
+    /* ── Real-time polling (WhatsApp-style) ── */
+    var $chatMessages = $('#chatMessages');
+    if ($chatMessages.length) {
+        var pollThreadId = $chatMessages.data('thread-id');
+        var pollUrl = $chatMessages.data('poll-url');
+        var pollTimer = null;
+        var knownMessageIds = {};
+
+        $chatMessages.find('[data-message-id]').each(function () {
+            knownMessageIds[$(this).data('message-id')] = true;
+        });
+
+        function appendIncomingMessage(msg) {
+            if (!msg || !msg.messageId || knownMessageIds[msg.messageId]) return;
+            knownMessageIds[msg.messageId] = true;
+
+            var isStaff = (msg.senderType || '').toUpperCase() === 'STAFF';
+            if (isStaff) return;
+
+            var timeLabel = msg.createdAt
+                ? formatTime(new Date(msg.createdAt))
+                : formatTime(new Date());
+            var $bubble = $(buildBubbleHtml(
+                msg.body || '',
+                msg.senderName || 'Patient',
+                msg.senderType || 'PATIENT',
+                timeLabel,
+                false
+            ));
+            $bubble.attr('data-message-id', msg.messageId);
+
+            ensureTodayDivider($chatMessages);
+            $chatMessages.append($bubble);
+            scrollChatToBottom();
+            updateSidebarPreview(msg.body || '', pollThreadId);
+            incrementMessageCount();
+            setLastMessageId(msg.messageId);
+
+            if (document.hidden && window.Notification && Notification.permission === 'granted') {
+                new Notification('New patient message', {
+                    body: (msg.body || '').substring(0, 120),
+                    tag: 'thread-' + pollThreadId
+                });
+            }
+        }
+
+        function pollNewMessages() {
+            if (!pollUrl || !pollThreadId || chatSending) return;
+
+            $.getJSON(pollUrl, {
+                id: pollThreadId,
+                afterMessageId: getLastMessageId()
+            }).done(function (res) {
+                if (!res || !res.success || !res.messages || !res.messages.length) return;
+                res.messages.forEach(appendIncomingMessage);
+            });
+        }
+
+        if (pollThreadId && pollUrl) {
+            if (window.Notification && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+            pollTimer = setInterval(pollNewMessages, 3000);
+            $(window).on('beforeunload', function () {
+                if (pollTimer) clearInterval(pollTimer);
+            });
+        }
     }
 
     $(document).on('click', '.chat-thread-item', function () {

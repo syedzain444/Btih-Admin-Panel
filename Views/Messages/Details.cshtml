@@ -69,7 +69,10 @@
                 </div>
             </header>
 
-            <div class="chat-messages" id="chatMessages">
+            <div class="chat-messages" id="chatMessages"
+                 data-thread-id="@Model.Thread.ThreadId"
+                 data-last-message-id="@(Model.Messages.Any() ? Model.Messages.Max(m => m.MessageId) : 0)"
+                 data-poll-url="@Url.Action("Poll", "Messages")">
                 @if (!Model.Messages.Any())
                 {
                     <div class="chat-messages-empty">
@@ -83,7 +86,7 @@
                     @foreach (var message in group)
                     {
                         var isStaff = message.SenderType.Equals("STAFF", StringComparison.OrdinalIgnoreCase);
-                        <div class="chat-bubble-row @(isStaff ? "is-staff" : "")">
+                        <div class="chat-bubble-row @(isStaff ? "is-staff" : "")" data-message-id="@message.MessageId">
                             @if (!isStaff)
                             {
                                 <div class="chat-bubble-avatar chat-bubble-avatar--patient">@BubbleInitials(message.SenderName, message.SenderType)</div>
