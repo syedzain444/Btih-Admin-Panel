@@ -1,0 +1,76 @@
+@model HospitalAdminPanel.Models.ViewModels.PromotionListViewModel
+@{
+    ViewData["Title"] = "Promotions";
+    ViewData["HeroTitle"] = "App Promotions";
+    ViewData["HeroSubtitle"] = "Manage launch screens shown after splash";
+    ViewData["HeroIcon"] = "bi-images";
+    ViewData["HeroBreadcrumb"] = "Home / Promotions";
+}
+
+@section HeroActions {
+    <a asp-action="Create" class="btn btn-btih"><i class="bi bi-plus-lg"></i> Add promotion</a>
+}
+
+<div class="panel-card datatable-panel">
+    <div class="table-responsive">
+        <table class="table table-btih datatable-btih mb-0 w-100">
+            <thead>
+                <tr>
+                    <th>Preview</th>
+                    <th>Title</th>
+                    <th>Order</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Schedule</th>
+                    <th class="no-sort">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var p in Model.Promotions)
+            {
+                var imageSrc = string.IsNullOrWhiteSpace(p.ImageUrl)
+                    ? ""
+                    : (p.ImageUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                        ? p.ImageUrl
+                        : $"{Model.ApiBaseUrl}{p.ImageUrl}");
+                <tr>
+                    <td style="width:96px;">
+                        @if (!string.IsNullOrWhiteSpace(imageSrc))
+                        {
+                            <img src="@imageSrc" alt="@p.Title" style="width:72px;height:120px;object-fit:cover;border-radius:10px;border:1px solid #eee;" />
+                        }
+                    </td>
+                    <td><strong>@p.Title</strong><div class="small text-muted">#@p.PromotionId</div></td>
+                    <td>@p.SortOrder</td>
+                    <td>@p.DurationSeconds s</td>
+                    <td>
+                        @if (p.IsActive)
+                        {
+                            <span class="badge-status badge-open">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge-status">Inactive</span>
+                        }
+                    </td>
+                    <td class="small">
+                        @(p.StartAt?.ToString("dd MMM yyyy") ?? "—")
+                        →
+                        @(p.EndAt?.ToString("dd MMM yyyy") ?? "—")
+                    </td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@p.PromotionId" class="btn btn-sm btn-action btn-action-manage">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <form asp-action="Delete" asp-route-id="@p.PromotionId" method="post" class="d-inline"
+                              onsubmit="return confirm('Delete this promotion?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

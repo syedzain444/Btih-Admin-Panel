@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRefillRepository, RefillRepository>();
         services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
         services.AddScoped<IAuditRepository, AuditRepository>();
+        services.AddScoped<IPromotionRepository, PromotionRepository>();
         services.AddScoped<IApiFactory, ApiFactory>();
 
         return services;

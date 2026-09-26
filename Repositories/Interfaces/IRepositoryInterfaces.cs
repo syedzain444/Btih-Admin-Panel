@@ -73,3 +73,11 @@ public interface IAuditRepository
 {
     Task<List<AuditLogApiModel>> GetRecentAsync(int take = 100, string? mrNo = null, CancellationToken cancellationToken = default);
 }
+
+public interface IPromotionRepository
+{
+    Task<List<PromotionApiModel>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task CreateAsync(MultipartFormDataContent content, CancellationToken cancellationToken = default);
+    Task UpdateAsync(int promotionId, MultipartFormDataContent content, CancellationToken cancellationToken = default);
+    Task DeleteAsync(int promotionId, CancellationToken cancellationToken = default);
+}

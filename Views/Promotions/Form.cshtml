@@ -1,0 +1,67 @@
+@model HospitalAdminPanel.Models.ViewModels.PromotionFormViewModel
+@{
+    var isEdit = Model.PromotionId.HasValue;
+    ViewData["Title"] = isEdit ? "Edit Promotion" : "Add Promotion";
+    ViewData["HeroTitle"] = isEdit ? "Edit Promotion" : "Add Promotion";
+    ViewData["HeroSubtitle"] = "Recommended image: portrait ~9:16 (e.g. 1080×1920). JPG/PNG/WEBP up to 6 MB.";
+    ViewData["HeroIcon"] = "bi-image";
+    ViewData["HeroBreadcrumb"] = "Home / Promotions / Form";
+    var existingSrc = string.IsNullOrWhiteSpace(Model.ExistingImageUrl)
+        ? null
+        : (Model.ExistingImageUrl!.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+            ? Model.ExistingImageUrl
+            : $"{Model.ApiBaseUrl}{Model.ExistingImageUrl}");
+}
+
+<div class="panel-card" style="max-width:720px;">
+    <form asp-action="@(isEdit ? "Edit" : "Create")" method="post" enctype="multipart/form-data" asp-route-id="@(Model.PromotionId)">
+        @Html.AntiForgeryToken()
+        <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input asp-for="Title" class="form-control" maxlength="120" required />
+            <span asp-validation-for="Title" class="text-danger small"></span>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Sort order</label>
+                <input asp-for="SortOrder" type="number" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Duration (seconds)</label>
+                <input asp-for="DurationSeconds" type="number" min="2" max="60" class="form-control" />
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <div class="form-check form-switch mb-2">
+                    <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                    <label class="form-check-label" asp-for="IsActive">Active</label>
+                </div>
+            </div>
+        </div>
+        <div class="row g-3 mt-1">
+            <div class="col-md-6">
+                <label class="form-label">Start at (optional)</label>
+                <input asp-for="StartAt" type="datetime-local" class="form-control"
+                       value="@(Model.StartAt?.ToString("yyyy-MM-ddTHH:mm"))" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">End at (optional)</label>
+                <input asp-for="EndAt" type="datetime-local" class="form-control"
+                       value="@(Model.EndAt?.ToString("yyyy-MM-ddTHH:mm"))" />
+            </div>
+        </div>
+        <div class="mb-3 mt-3">
+            <label class="form-label">@(isEdit ? "Replace image (optional)" : "Image")</label>
+            <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png,.webp,.gif" />
+            @if (!string.IsNullOrWhiteSpace(existingSrc))
+            {
+                <div class="mt-3">
+                    <img src="@existingSrc" alt="Current" style="max-height:280px;border-radius:12px;border:1px solid #eee;" />
+                </div>
+            }
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-btih">@(isEdit ? "Save changes" : "Create")</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>

@@ -13,4 +13,5 @@ public interface IApiFactory
     IRefillRepository Refills { get; }
     ISupportTicketRepository SupportTickets { get; }
     IAuditRepository Audit { get; }
+    IPromotionRepository Promotions { get; }
 }

@@ -126,6 +126,53 @@ public class ApiClient : IApiClient
         return await response.Content.ReadAsByteArrayAsync(cancellationToken);
     }
 
+    public Task<T?> PostMultipartAsync<T>(string path, MultipartFormDataContent content, CancellationToken cancellationToken = default) =>
+        SendMultipartAsync<T>(HttpMethod.Post, path, content, cancellationToken);
+
+    public Task<T?> PutMultipartAsync<T>(string path, MultipartFormDataContent content, CancellationToken cancellationToken = default) =>
+        SendMultipartAsync<T>(HttpMethod.Put, path, content, cancellationToken);
+
+    public async Task DeleteAsync(string path, CancellationToken cancellationToken = default)
+    {
+        await SendAsync<object>(HttpMethod.Delete, path, null, cancellationToken);
+    }
+
+    private async Task<T?> SendMultipartAsync<T>(
+        HttpMethod method,
+        string path,
+        MultipartFormDataContent content,
+        CancellationToken cancellationToken)
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(method, path.TrimStart('/'));
+        ApplyAuth(request);
+        request.Content = content;
+
+        using var response = await client.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            _tokenSession.Clear();
+            throw new ApiException(401, "Session expired. Please sign in again.", responseBody);
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new ApiException(
+                (int)response.StatusCode,
+                TryExtractMessage(responseBody) ?? $"API request failed ({(int)response.StatusCode}).",
+                responseBody);
+        }
+
+        if (typeof(T) == typeof(object) || string.IsNullOrWhiteSpace(responseBody))
+        {
+            return default;
+        }
+
+        return JsonSerializer.Deserialize<T>(responseBody, JsonOptions);
+    }
+
     private void ApplyAuth(HttpRequestMessage request)
     {
         var token = _tokenSession.GetToken();

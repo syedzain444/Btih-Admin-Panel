@@ -128,6 +128,25 @@ public class TicketListViewModel
     public List<SupportTicketApiModel> Tickets { get; set; } = new();
 }
 
+public class PromotionListViewModel
+{
+    public List<PromotionApiModel> Promotions { get; set; } = new();
+    public string ApiBaseUrl { get; set; } = string.Empty;
+}
+
+public class PromotionFormViewModel
+{
+    public int? PromotionId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public int SortOrder { get; set; }
+    public int DurationSeconds { get; set; } = 5;
+    public bool IsActive { get; set; } = true;
+    public DateTime? StartAt { get; set; }
+    public DateTime? EndAt { get; set; }
+    public string? ExistingImageUrl { get; set; }
+    public string ApiBaseUrl { get; set; } = string.Empty;
+}
+
 public class PageHeaderViewModel
 {
     public string Title { get; set; } = string.Empty;

@@ -290,3 +290,33 @@ public class AuditRepository : IAuditRepository
         return response?.Data ?? new List<AuditLogApiModel>();
     }
 }
+
+public class PromotionRepository : IPromotionRepository
+{
+    private readonly IApiClient _api;
+
+    public PromotionRepository(IApiClient api) => _api = api;
+
+    public async Task<List<PromotionApiModel>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _api.GetAsync<ApiSuccessResponse<List<PromotionApiModel>>>(
+            "api/admin/promotions",
+            cancellationToken);
+        return response?.Data ?? new List<PromotionApiModel>();
+    }
+
+    public async Task CreateAsync(MultipartFormDataContent content, CancellationToken cancellationToken = default)
+    {
+        await _api.PostMultipartAsync<object>("api/admin/promotions", content, cancellationToken);
+    }
+
+    public async Task UpdateAsync(int promotionId, MultipartFormDataContent content, CancellationToken cancellationToken = default)
+    {
+        await _api.PutMultipartAsync<object>($"api/admin/promotions/{promotionId}", content, cancellationToken);
+    }
+
+    public async Task DeleteAsync(int promotionId, CancellationToken cancellationToken = default)
+    {
+        await _api.DeleteAsync($"api/admin/promotions/{promotionId}", cancellationToken);
+    }
+}

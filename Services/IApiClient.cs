@@ -9,6 +9,9 @@ public interface IApiClient
     Task<bool> PostAsync(string path, object body, CancellationToken cancellationToken = default);
     Task<bool> PutAsync(string path, object body, CancellationToken cancellationToken = default);
     Task<byte[]> GetBytesAsync(string path, CancellationToken cancellationToken = default);
+    Task<T?> PostMultipartAsync<T>(string path, MultipartFormDataContent content, CancellationToken cancellationToken = default);
+    Task<T?> PutMultipartAsync<T>(string path, MultipartFormDataContent content, CancellationToken cancellationToken = default);
+    Task DeleteAsync(string path, CancellationToken cancellationToken = default);
 }
 
 public class ApiException : Exception

@@ -13,7 +13,8 @@ public class ApiFactory : IApiFactory
         IReportRepository reports,
         IRefillRepository refills,
         ISupportTicketRepository supportTickets,
-        IAuditRepository audit)
+        IAuditRepository audit,
+        IPromotionRepository promotions)
     {
         Auth = auth;
         Dashboard = dashboard;
@@ -24,6 +25,7 @@ public class ApiFactory : IApiFactory
         Refills = refills;
         SupportTickets = supportTickets;
         Audit = audit;
+        Promotions = promotions;
     }
 
     public IAuthRepository Auth { get; }
@@ -35,4 +37,5 @@ public class ApiFactory : IApiFactory
     public IRefillRepository Refills { get; }
     public ISupportTicketRepository SupportTickets { get; }
     public IAuditRepository Audit { get; }
+    public IPromotionRepository Promotions { get; }
 }
