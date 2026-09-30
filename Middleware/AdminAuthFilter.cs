@@ -1,3 +1,4 @@
+using HospitalAdminPanel.Helpers;
 using HospitalAdminPanel.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -15,15 +16,27 @@ public class AdminAuthorizeAttribute : Attribute, IAuthorizationFilter
             return;
         }
 
-        context.Result = new RedirectToActionResult("Login", "Account", new { returnUrl = context.HttpContext.Request.Path });
+        context.Result = new RedirectToActionResult(
+            "Login",
+            "Account",
+            new { returnUrl = context.HttpContext.Request.Path });
     }
 }
 
+/// <summary>
+/// Exact single-role gate (legacy). Prefer <see cref="AdminPermissionAttribute"/> for modules.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
 public class AdminRoleAttribute : Attribute, IAuthorizationFilter
 {
-    private readonly string _role;
+    private readonly HashSet<string> _roles;
 
-    public AdminRoleAttribute(string role) => _role = role;
+    public AdminRoleAttribute(params string[] roles)
+    {
+        _roles = new HashSet<string>(
+            roles.Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => r.Trim()),
+            StringComparer.OrdinalIgnoreCase);
+    }
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
@@ -35,9 +48,35 @@ public class AdminRoleAttribute : Attribute, IAuthorizationFilter
             return;
         }
 
-        if (!string.Equals(user.Role, _role, StringComparison.OrdinalIgnoreCase))
+        if (_roles.Count > 0 &&
+            !_roles.Contains(AdminRoles.Normalize(user.Role)))
         {
-            context.Result = new ForbidResult();
+            context.Result = new RedirectToActionResult("Forbidden", "Account", null);
+        }
+    }
+}
+
+/// <summary>Module-based RBAC using <see cref="AdminModulePermissions"/>.</summary>
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
+public class AdminPermissionAttribute : Attribute, IAuthorizationFilter
+{
+    private readonly string _module;
+
+    public AdminPermissionAttribute(string module) => _module = module;
+
+    public void OnAuthorization(AuthorizationFilterContext context)
+    {
+        var tokenService = context.HttpContext.RequestServices.GetRequiredService<ITokenSessionService>();
+        var user = tokenService.GetUser();
+        if (user == null)
+        {
+            context.Result = new RedirectToActionResult("Login", "Account", null);
+            return;
+        }
+
+        if (!AdminModulePermissions.CanAccess(user.Role, _module))
+        {
+            context.Result = new RedirectToActionResult("Forbidden", "Account", new { module = _module });
         }
     }
 }

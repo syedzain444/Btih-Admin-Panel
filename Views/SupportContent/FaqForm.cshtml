@@ -1,0 +1,59 @@
+@model HospitalAdminPanel.Models.ViewModels.FaqFormViewModel
+@{
+    var isEdit = Model.FaqId.HasValue && Model.FaqId > 0;
+    ViewData["Title"] = isEdit ? "Edit FAQ" : "Add FAQ";
+    ViewData["HeroTitle"] = isEdit ? "Edit FAQ" : "Add FAQ";
+    ViewData["HeroSubtitle"] = "Questions appear on the mobile Help & Support screen";
+    ViewData["HeroIcon"] = "bi-question-circle";
+    ViewData["HeroBreadcrumb"] = "Home / Help Content / FAQ";
+}
+
+@section HeroActions {
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+}
+
+<div class="panel-card">
+    <form asp-action="@(isEdit ? "EditFaq" : "CreateFaq")" asp-route-id="@(Model.FaqId)" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        <div class="col-md-4">
+            <label class="form-label">Category</label>
+            <input class="form-control" asp-for="Category" maxlength="80" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Sort order</label>
+            <input class="form-control" asp-for="SortOrder" type="number" />
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" asp-for="IsActive" />
+                <label class="form-check-label" asp-for="IsActive">Active in app</label>
+            </div>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Question (English) *</label>
+            <input class="form-control" asp-for="QuestionEn" required maxlength="500" />
+            <span asp-validation-for="QuestionEn" class="text-danger small"></span>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Answer (English) *</label>
+            <textarea class="form-control" asp-for="AnswerEn" rows="4" required maxlength="2000"></textarea>
+            <span asp-validation-for="AnswerEn" class="text-danger small"></span>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Question (Urdu) — optional</label>
+            <input class="form-control" asp-for="QuestionUr" maxlength="500" dir="auto" />
+        </div>
+        <div class="col-12">
+            <label class="form-label">Answer (Urdu) — optional</label>
+            <textarea class="form-control" asp-for="AnswerUr" rows="3" maxlength="2000" dir="auto"></textarea>
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-btih"><i class="bi bi-save"></i> @(isEdit ? "Save changes" : "Create FAQ")</button>
+            <a asp-action="Index" class="btn btn-light">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,23 @@
+@{
+    ViewData["Title"] = "Access denied";
+    Layout = "_Layout";
+    var module = ViewData["Module"] as string;
+    var role = ViewData["Role"] as string ?? "your role";
+}
+<div class="card border-0 shadow-sm" style="max-width: 560px; margin: 2rem auto;">
+    <div class="card-body p-4 text-center">
+        <div class="mb-3">
+            <i class="bi bi-shield-lock text-danger" style="font-size: 2.5rem;"></i>
+        </div>
+        <h1 class="h4 mb-2">Access denied</h1>
+        <p class="text-muted mb-3">
+            Your account role (<strong>@role</strong>) is not permitted to open
+            @(string.IsNullOrWhiteSpace(module) ? "this module" : $"the {module} module").
+        </p>
+        <p class="small text-muted mb-4">
+            Contact hospital IT if you need additional access. Restricted modules such as
+            Patients and Reports are available to Admin only (REQ-2026-025).
+        </p>
+        <a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index">Back to Dashboard</a>
+    </div>
+</div>

@@ -15,7 +15,11 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = 8_000_000;
 });
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<HospitalAdminPanel.Middleware.TicketNavBadgeFilter>();
+});
+builder.Services.AddMemoryCache();
 builder.Services.AddAdminPanelServices(builder.Configuration);
 
 var app = builder.Build();

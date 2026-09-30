@@ -1,5 +1,7 @@
 using HospitalAdminPanel.Configuration;
 using HospitalAdminPanel.Factories;
+using HospitalAdminPanel.Helpers;
+using HospitalAdminPanel.Middleware;
 using HospitalAdminPanel.Models.Api;
 using HospitalAdminPanel.Models.ViewModels;
 using HospitalAdminPanel.Services;
@@ -65,6 +67,8 @@ public class AccountController : Controller
                 return View(model);
             }
 
+            response.User.Role = AdminRoles.Normalize(response.User.Role);
+
             var expiresAt = response.ExpiresAt ?? DateTime.UtcNow.AddHours(8);
             _tokenSession.SetSession(response.Token, response.User, expiresAt);
 
@@ -96,6 +100,16 @@ public class AccountController : Controller
             ViewData["ShowDevHints"] = _environment.IsDevelopment();
             return View(model);
         }
+    }
+
+    [HttpGet]
+    [AdminAuthorize]
+    public IActionResult Forbidden(string? module = null)
+    {
+        ViewData["Title"] = "Access denied";
+        ViewData["Module"] = module;
+        ViewData["Role"] = _tokenSession.GetUser()?.Role ?? "Unknown";
+        return View();
     }
 
     [HttpPost]

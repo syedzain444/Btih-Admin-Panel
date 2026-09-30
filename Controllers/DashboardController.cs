@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HospitalAdminPanel.Controllers;
 
 [AdminAuthorize]
+[AdminPermission(AdminModules.Dashboard)]
 public class DashboardController : Controller
 {
     private readonly IApiFactory _apiFactory;
@@ -17,6 +18,12 @@ public class DashboardController : Controller
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         var vm = new DashboardViewModel();
+        var role = HttpContext.RequestServices
+            .GetRequiredService<ITokenSessionService>()
+            .GetUser()?.Role;
+        var canAnalytics = AdminModulePermissions.CanAccess(role, AdminModules.Analytics);
+        var canTickets = AdminModulePermissions.CanAccess(role, AdminModules.Tickets);
+        var canRefills = AdminModulePermissions.CanAccess(role, AdminModules.Refills);
 
         try
         {
@@ -24,58 +31,71 @@ public class DashboardController : Controller
             var counts = await _apiFactory.Dashboard.GetCountsAsync(cancellationToken);
             if (counts != null)
             {
-                vm.OpenTickets = counts.OpenTickets;
-                vm.PendingRefills = counts.PendingRefills;
+                vm.OpenTickets = canTickets ? counts.OpenTickets : 0;
+                vm.PendingRefills = canRefills ? counts.PendingRefills : 0;
                 vm.MessageThreads = counts.MessageThreads;
             }
 
-            var users = await _apiFactory.Dashboard.GetUserAnalyticsAsync(cancellationToken);
-            if (users != null)
+            if (canAnalytics)
             {
-                vm.TotalUsers = users.TotalUsers;
-                vm.ActiveUsers = users.ActiveUsers;
-                vm.NewUsers = users.NewUsers;
-                vm.ReturningUsers = users.ReturningUsers;
-                if (users.Period != null)
+                var users = await _apiFactory.Dashboard.GetUserAnalyticsAsync(cancellationToken);
+                if (users != null)
                 {
-                    vm.DateRangeLabel =
-                        $"{users.Period.From:MMM d} – {users.Period.To:MMM d, yyyy}";
+                    vm.TotalUsers = users.TotalUsers;
+                    vm.ActiveUsers = users.ActiveUsers;
+                    vm.NewUsers = users.NewUsers;
+                    vm.ReturningUsers = users.ReturningUsers;
+                    if (users.Period != null)
+                    {
+                        vm.DateRangeLabel =
+                            $"{users.Period.From:MMM d} – {users.Period.To:MMM d, yyyy}";
+                    }
                 }
-            }
-            else
-            {
-                vm.MissingApis.Add(MissingApiCatalog.DashboardAnalytics[0]);
-            }
+                else
+                {
+                    vm.MissingApis.Add(MissingApiCatalog.DashboardAnalytics[0]);
+                }
 
-            var visits = await _apiFactory.Dashboard.GetVisitAnalyticsAsync(cancellationToken);
-            if (visits != null)
-            {
-                vm.TotalVisits = visits.TotalVisits;
-                vm.DailyVisits = visits.Daily;
-                vm.WeeklyVisits = visits.Weekly;
-            }
-            else
-            {
-                vm.MissingApis.Add(MissingApiCatalog.DashboardAnalytics[1]);
-            }
+                var visits = await _apiFactory.Dashboard.GetVisitAnalyticsAsync(cancellationToken);
+                if (visits != null)
+                {
+                    vm.TotalVisits = visits.TotalVisits;
+                    vm.DailyVisits = visits.Daily;
+                    vm.WeeklyVisits = visits.Weekly;
+                }
+                else
+                {
+                    vm.MissingApis.Add(MissingApiCatalog.DashboardAnalytics[1]);
+                }
 
-            var engagement = await _apiFactory.Dashboard.GetEngagementAnalyticsAsync(cancellationToken);
-            if (engagement != null)
-            {
-                vm.AvgSessionMinutes = engagement.AvgSessionDurationSeconds / 60;
-            }
-            else
-            {
-                vm.MissingApis.Add(MissingApiCatalog.DashboardAnalytics[2]);
+                var engagement = await _apiFactory.Dashboard.GetEngagementAnalyticsAsync(cancellationToken);
+                if (engagement != null)
+                {
+                    vm.AvgSessionMinutes = engagement.AvgSessionDurationSeconds / 60;
+                }
+                else
+                {
+                    vm.MissingApis.Add(MissingApiCatalog.DashboardAnalytics[2]);
+                }
             }
 
             vm.RecentThreads = (await _apiFactory.Messages.GetThreadsAsync(cancellationToken)).Take(5).ToList();
-            vm.RecentTickets = (await _apiFactory.SupportTickets.GetOpenAsync(cancellationToken)).Take(5).ToList();
-            vm.RecentRefills = (await _apiFactory.Refills.GetPendingAsync(cancellationToken)).Take(5).ToList();
+            if (canTickets)
+            {
+                vm.RecentTickets = (await _apiFactory.SupportTickets.GetOpenAsync(cancellationToken)).Take(5).ToList();
+            }
+            if (canRefills)
+            {
+                vm.RecentRefills = (await _apiFactory.Refills.GetPendingAsync(cancellationToken)).Take(5).ToList();
+            }
         }
         catch (ApiException ex) when (ex.StatusCode == 401)
         {
             return RedirectToAction("Login", "Account");
+        }
+        catch (ApiException ex) when (ex.StatusCode == 403)
+        {
+            TempData["Error"] = "Some dashboard widgets are restricted for your role.";
         }
         catch (ApiException)
         {

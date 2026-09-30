@@ -17,7 +17,7 @@ namespace HospitalAdminPanel.Controllers;
 
 
 [AdminAuthorize]
-
+[AdminPermission(AdminModules.Appointments)]
 public class AppointmentsController : Controller
 
 {

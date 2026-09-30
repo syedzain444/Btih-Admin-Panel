@@ -297,12 +297,14 @@ public class PromotionRepository : IPromotionRepository
 
     public PromotionRepository(IApiClient api) => _api = api;
 
-    public async Task<List<PromotionApiModel>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<(List<PromotionApiModel> Promotions, int DisplayLimit)> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var response = await _api.GetAsync<ApiSuccessResponse<List<PromotionApiModel>>>(
+        var response = await _api.GetAsync<PromotionListApiResponse>(
             "api/admin/promotions",
             cancellationToken);
-        return response?.Data ?? new List<PromotionApiModel>();
+        return (
+            response?.Data ?? new List<PromotionApiModel>(),
+            response?.DisplayLimit > 0 ? response.DisplayLimit : 5);
     }
 
     public async Task CreateAsync(MultipartFormDataContent content, CancellationToken cancellationToken = default)
@@ -318,5 +320,56 @@ public class PromotionRepository : IPromotionRepository
     public async Task DeleteAsync(int promotionId, CancellationToken cancellationToken = default)
     {
         await _api.DeleteAsync($"api/admin/promotions/{promotionId}", cancellationToken);
+    }
+
+    public async Task SetDisplayLimitAsync(int displayLimit, CancellationToken cancellationToken = default)
+    {
+        await _api.PutAsync(
+            "api/admin/promotions/display-limit",
+            new PromotionDisplayLimitRequest { DisplayLimit = displayLimit },
+            cancellationToken);
+    }
+}
+
+public class SupportContentRepository : ISupportContentRepository
+{
+    private readonly IApiClient _api;
+
+    public SupportContentRepository(IApiClient api) => _api = api;
+
+    public async Task<SupportContactApiModel?> GetContactAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _api.GetAsync<SupportContactApiResponse>(
+            "api/admin/support/contact",
+            cancellationToken);
+        return response?.Data;
+    }
+
+    public async Task UpdateContactAsync(SupportContactApiModel contact, CancellationToken cancellationToken = default)
+    {
+        await _api.PutAsync("api/admin/support/contact", contact, cancellationToken);
+    }
+
+    public async Task<List<FaqAdminApiModel>> GetFaqsAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _api.GetAsync<FaqAdminListApiResponse>(
+            "api/admin/support/faq",
+            cancellationToken);
+        return response?.Data ?? new List<FaqAdminApiModel>();
+    }
+
+    public async Task CreateFaqAsync(FaqAdminApiModel faq, CancellationToken cancellationToken = default)
+    {
+        await _api.PostAsync("api/admin/support/faq", faq, cancellationToken);
+    }
+
+    public async Task UpdateFaqAsync(int faqId, FaqAdminApiModel faq, CancellationToken cancellationToken = default)
+    {
+        await _api.PutAsync($"api/admin/support/faq/{faqId}", faq, cancellationToken);
+    }
+
+    public async Task DeleteFaqAsync(int faqId, CancellationToken cancellationToken = default)
+    {
+        await _api.DeleteAsync($"api/admin/support/faq/{faqId}", cancellationToken);
     }
 }

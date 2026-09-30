@@ -1,0 +1,95 @@
+@model HospitalAdminPanel.Models.ViewModels.SupportContentViewModel
+@{
+    ViewData["Title"] = "Help & Support";
+    ViewData["HeroTitle"] = "Help & Support Content";
+    ViewData["HeroSubtitle"] = "Manage Call Us, Email Us, Visit Us, Operating Hours, and FAQ shown in the mobile app";
+    ViewData["HeroIcon"] = "bi-headset";
+    ViewData["HeroBreadcrumb"] = "Home / Help Content";
+}
+
+@section HeroActions {
+    <a asp-action="CreateFaq" class="btn btn-btih"><i class="bi bi-plus-lg"></i> Add FAQ</a>
+}
+
+<div class="panel-card mb-4">
+    <h5 class="mb-3 fw-semibold">Contact details (mobile Help &amp; Support)</h5>
+    <form asp-action="SaveContact" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        <div class="col-md-6">
+            <label class="form-label">Hospital name</label>
+            <input class="form-control" name="HospitalName" value="@Model.Contact.HospitalName" required maxlength="200" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Call Us (phone)</label>
+            <input class="form-control" name="Phone" value="@Model.Contact.Phone" required maxlength="50" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Email Us</label>
+            <input class="form-control" type="email" name="Email" value="@Model.Contact.Email" required maxlength="120" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Operating Hours</label>
+            <input class="form-control" name="WorkingHours" value="@Model.Contact.WorkingHours" required maxlength="200" />
+        </div>
+        <div class="col-12">
+            <label class="form-label">Visit Us (address)</label>
+            <textarea class="form-control" name="Address" rows="2" required maxlength="400">@Model.Contact.Address</textarea>
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-btih"><i class="bi bi-save"></i> Save contact details</button>
+        </div>
+    </form>
+</div>
+
+<div class="panel-card datatable-panel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 fw-semibold">Frequently Asked Questions</h5>
+        <a asp-action="CreateFaq" class="btn btn-sm btn-outline-danger"><i class="bi bi-plus"></i> Add</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-btih datatable-btih mb-0 w-100">
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Category</th>
+                    <th>Question (EN)</th>
+                    <th>Status</th>
+                    <th class="no-sort">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var f in Model.Faqs)
+            {
+                <tr>
+                    <td>@f.SortOrder</td>
+                    <td>@f.Category</td>
+                    <td>
+                        <strong>@f.QuestionEn</strong>
+                        <div class="small text-muted text-truncate" style="max-width:420px;">@f.AnswerEn</div>
+                    </td>
+                    <td>
+                        @if (f.IsActive)
+                        {
+                            <span class="badge-status badge-open">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge-status">Inactive</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-action="EditFaq" asp-route-id="@f.FaqId" class="btn btn-sm btn-action btn-action-manage">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <form asp-action="DeleteFaq" asp-route-id="@f.FaqId" method="post" class="d-inline"
+                              onsubmit="return confirm('Delete this FAQ?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

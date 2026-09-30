@@ -17,7 +17,7 @@ namespace HospitalAdminPanel.Controllers;
 
 
 [AdminAuthorize]
-
+[AdminPermission(AdminModules.Reports)]
 public class ReportsController : Controller
 
 {

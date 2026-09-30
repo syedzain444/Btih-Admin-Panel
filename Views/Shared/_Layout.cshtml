@@ -2,10 +2,14 @@
 @inject Microsoft.Extensions.Options.IOptions<HospitalAdminPanel.Configuration.AdminPanelSettings> PanelSettings
 @{
     var user = TokenSession.GetUser();
+    var role = user?.Role;
     var hospital = PanelSettings.Value.HospitalName;
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     var initials = user?.DisplayName?.Substring(0, 1) ?? user?.Username?.Substring(0, 1) ?? "A";
+    bool Can(string module) => AdminModulePermissions.CanAccess(role, module);
+    var isLoginPage = controller.Equals("Account", StringComparison.OrdinalIgnoreCase)
+        && !action.Equals("Forbidden", StringComparison.OrdinalIgnoreCase);
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -20,7 +24,7 @@
     <link rel="stylesheet" href="~/css/admin-theme.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body class="@(controller.Equals("Account", StringComparison.OrdinalIgnoreCase) ? "login-body" : "app-body")@(controller.Equals("Messages", StringComparison.OrdinalIgnoreCase) ? " messages-module" : "")">
+<body class="@(isLoginPage ? "login-body" : "app-body")@(controller.Equals("Messages", StringComparison.OrdinalIgnoreCase) ? " messages-module" : "")">
 <div id="appSplash" class="app-splash" aria-live="polite" aria-busy="true">
     <div class="splash-inner">
         <img src="~/images/Hospital-Logo-w.png" asp-append-version="true" alt="Bahria Town International Hospital Karachi" class="splash-logo-img" />
@@ -36,7 +40,7 @@
     </div>
 </div>
 <div id="navProgress" class="nav-progress" aria-hidden="true"></div>
-@if (controller.Equals("Account", StringComparison.OrdinalIgnoreCase))
+@if (isLoginPage)
 {
     @RenderBody()
 }
@@ -48,13 +52,27 @@ else
             <div class="rail-logo" title="BTIH Admin">
                 <img src="~/images/hospital-logo.png" asp-append-version="true" alt="Bahria Town International Hospital Karachi" class="rail-logo-img" />
             </div>
-            <a class="rail-link @(controller=="Dashboard"?"active":"")" asp-controller="Dashboard" asp-action="Index" title="Dashboard"><i class="bi bi-house-door-fill"></i></a>
-            <a class="rail-link @(controller=="Messages"?"active":"")" asp-controller="Messages" asp-action="Index" title="Messages"><i class="bi bi-chat-dots-fill"></i></a>
-            <a class="rail-link @(controller=="Appointments"?"active":"")" asp-controller="Appointments" asp-action="Index" title="Appointments"><i class="bi bi-calendar3-event-fill"></i></a>
-            <a class="rail-link @(controller=="Users"?"active":"")" asp-controller="Users" asp-action="Index" title="Users"><i class="bi bi-people-fill"></i></a>
-            <a class="rail-link @(controller=="Reports"?"active":"")" asp-controller="Reports" asp-action="Index" title="Reports"><i class="bi bi-bar-chart-fill"></i></a>
+            @if (Can(AdminModules.Dashboard))
+            {
+                <a class="rail-link @(controller=="Dashboard"?"active":"")" asp-controller="Dashboard" asp-action="Index" title="Dashboard"><i class="bi bi-house-door-fill"></i></a>
+            }
+            @if (Can(AdminModules.Messages))
+            {
+                <a class="rail-link @(controller=="Messages"?"active":"")" asp-controller="Messages" asp-action="Index" title="Messages"><i class="bi bi-chat-dots-fill"></i></a>
+            }
+            @if (Can(AdminModules.Appointments))
+            {
+                <a class="rail-link @(controller=="Appointments"?"active":"")" asp-controller="Appointments" asp-action="Index" title="Appointments"><i class="bi bi-calendar3-event-fill"></i></a>
+            }
+            @if (Can(AdminModules.Users))
+            {
+                <a class="rail-link @(controller=="Users"?"active":"")" asp-controller="Users" asp-action="Index" title="Users"><i class="bi bi-people-fill"></i></a>
+            }
+            @if (Can(AdminModules.Reports))
+            {
+                <a class="rail-link @(controller=="Reports"?"active":"")" asp-controller="Reports" asp-action="Index" title="Reports"><i class="bi bi-bar-chart-fill"></i></a>
+            }
             <div class="rail-spacer"></div>
-            <a href="#" class="rail-link" title="Settings"><i class="bi bi-gear"></i></a>
             <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="header-icon-btn border-0" title="Logout"><i class="bi bi-box-arrow-right"></i></button>
@@ -69,36 +87,100 @@ else
 
             <div class="nav-section-label">Starred</div>
             <div class="nav-tree">
-                <a asp-controller="Dashboard" asp-action="Index"><i class="bi bi-star-fill nav-star"></i> Overview</a>
-                <a asp-controller="Messages" asp-action="Index"><i class="bi bi-star-fill nav-star"></i> Inbox</a>
+                @if (Can(AdminModules.Dashboard))
+                {
+                    <a asp-controller="Dashboard" asp-action="Index"><i class="bi bi-star-fill nav-star"></i> Overview</a>
+                }
+                @if (Can(AdminModules.Messages))
+                {
+                    <a asp-controller="Messages" asp-action="Index"><i class="bi bi-star-fill nav-star"></i> Inbox</a>
+                }
             </div>
 
-            <div class="nav-section-label">Recent</div>
-            <div class="nav-tree">
-                <a asp-controller="Refills" asp-action="Index">Refill queue</a>
-                <a asp-controller="Tickets" asp-action="Index">Support tickets</a>
-            </div>
+            @if (Can(AdminModules.Refills) || Can(AdminModules.Tickets))
+            {
+                <div class="nav-section-label">Recent</div>
+                <div class="nav-tree">
+                    @if (Can(AdminModules.Refills))
+                    {
+                        <a asp-controller="Refills" asp-action="Index">Refill queue</a>
+                    }
+                    @if (Can(AdminModules.Tickets))
+                    {
+                        <a asp-controller="Tickets" asp-action="Index">
+                            Support tickets
+                            @{
+                                var recentTicketCount = (ViewData["TicketCount"] as int?) ?? 0;
+                            }
+                            @if (recentTicketCount > 0)
+                            {
+                                <span class="nav-badge">@recentTicketCount</span>
+                            }
+                        </a>
+                    }
+                </div>
+            }
 
             <div class="nav-section-label">Hospital modules</div>
             <div class="nav-tree">
                 <div class="nav-tree-item fw-semibold text-dark"><i class="bi bi-grid"></i> Dashboard</div>
                 <div class="nav-nested">
-                    <a class="@(controller=="Dashboard" && action=="Index" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">Overview</a>
-                    <a class="@(controller=="Messages"?"active":"")" asp-controller="Messages" asp-action="Index">
-                        Messages <span class="nav-badge">@((ViewData["MsgCount"] as int?) ?? 0)</span>
-                    </a>
-                    <a class="@(controller=="Appointments"?"active":"")" asp-controller="Appointments" asp-action="Index">Appointments</a>
-                    <a class="@(controller=="Users"?"active":"")" asp-controller="Users" asp-action="Index">Patients</a>
+                    @if (Can(AdminModules.Dashboard))
+                    {
+                        <a class="@(controller=="Dashboard" && action=="Index" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">Overview</a>
+                    }
+                    @if (Can(AdminModules.Messages))
+                    {
+                        <a class="@(controller=="Messages"?"active":"")" asp-controller="Messages" asp-action="Index">
+                            Messages <span class="nav-badge">@((ViewData["MsgCount"] as int?) ?? 0)</span>
+                        </a>
+                    }
+                    @if (Can(AdminModules.Appointments))
+                    {
+                        <a class="@(controller=="Appointments"?"active":"")" asp-controller="Appointments" asp-action="Index">Appointments</a>
+                    }
+                    @if (Can(AdminModules.Users))
+                    {
+                        <a class="@(controller=="Users"?"active":"")" asp-controller="Users" asp-action="Index">Patients</a>
+                    }
                 </div>
-                <div class="nav-tree-item fw-semibold text-dark mt-2"><i class="bi bi-clipboard-data"></i> Operations</div>
-                <div class="nav-nested">
-                    <a class="@(controller=="Refills"?"active":"")" asp-controller="Refills" asp-action="Index">
-                        Refills <span class="nav-dot"></span>
-                    </a>
-                    <a class="@(controller=="Tickets"?"active":"")" asp-controller="Tickets" asp-action="Index">Support</a>
-                    <a class="@(controller=="Promotions"?"active":"")" asp-controller="Promotions" asp-action="Index">Promotions</a>
-                    <a class="@(controller=="Reports"?"active":"")" asp-controller="Reports" asp-action="Index">Reports &amp; audit</a>
-                </div>
+                @if (Can(AdminModules.Refills) || Can(AdminModules.Tickets) || Can(AdminModules.Promotions) || Can(AdminModules.SupportContent) || Can(AdminModules.Reports))
+                {
+                    <div class="nav-tree-item fw-semibold text-dark mt-2"><i class="bi bi-clipboard-data"></i> Operations</div>
+                    <div class="nav-nested">
+                        @if (Can(AdminModules.Refills))
+                        {
+                            <a class="@(controller=="Refills"?"active":"")" asp-controller="Refills" asp-action="Index">
+                                Refills <span class="nav-dot"></span>
+                            </a>
+                        }
+                        @if (Can(AdminModules.Tickets))
+                        {
+                            <a class="@(controller=="Tickets"?"active":"")" asp-controller="Tickets" asp-action="Index">
+                                Support
+                                @{
+                                    var ticketCount = (ViewData["TicketCount"] as int?) ?? 0;
+                                }
+                                @if (ticketCount > 0)
+                                {
+                                    <span class="nav-badge">@ticketCount</span>
+                                }
+                            </a>
+                        }
+                        @if (Can(AdminModules.Promotions))
+                        {
+                            <a class="@(controller=="Promotions"?"active":"")" asp-controller="Promotions" asp-action="Index">Promotions</a>
+                        }
+                        @if (Can(AdminModules.SupportContent))
+                        {
+                            <a class="@(controller=="SupportContent"?"active":"")" asp-controller="SupportContent" asp-action="Index">Help Content</a>
+                        }
+                        @if (Can(AdminModules.Reports))
+                        {
+                            <a class="@(controller=="Reports"?"active":"")" asp-controller="Reports" asp-action="Index">Reports &amp; audit</a>
+                        }
+                    </div>
+                }
             </div>
 
             <div class="nav-section-label mt-3">System</div>
@@ -115,10 +197,16 @@ else
                     <input type="search" placeholder="Try searching 'patients', 'appointments'..." disabled />
                 </div>
                 <div class="header-actions">
+                    @if (!string.IsNullOrWhiteSpace(role))
+                    {
+                        <span class="badge rounded-pill text-bg-light border me-1" title="Signed-in role">@role</span>
+                    }
                     <button type="button" class="header-icon-btn"><i class="bi bi-sliders"></i></button>
-                    <a asp-controller="Messages" asp-action="Index" class="header-icon-btn text-decoration-none"><i class="bi bi-bell"></i></a>
-                    <div class="header-avatar">@initials</div>
-                    <button type="button" class="btn-accent-circle" title="Quick action"><i class="bi bi-plus-lg"></i></button>
+                    @if (Can(AdminModules.Messages))
+                    {
+                        <a asp-controller="Messages" asp-action="Index" class="header-icon-btn text-decoration-none"><i class="bi bi-bell"></i></a>
+                    }
+                    <div class="header-avatar" title="@(user?.DisplayName ?? user?.Username)">@initials</div>
                 </div>
             </header>
             <main class="content-area">

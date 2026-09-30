@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Promotions";
     ViewData["HeroTitle"] = "App Promotions";
-    ViewData["HeroSubtitle"] = "Manage launch screens shown after splash";
+    ViewData["HeroSubtitle"] = "Add unlimited promotions; control how many appear after splash";
     ViewData["HeroIcon"] = "bi-images";
     ViewData["HeroBreadcrumb"] = "Home / Promotions";
 }
@@ -10,6 +10,27 @@
 @section HeroActions {
     <a asp-action="Create" class="btn btn-btih"><i class="bi bi-plus-lg"></i> Add promotion</a>
 }
+
+<div class="panel-card mb-3">
+    <form asp-action="SaveDisplayLimit" method="post" class="row g-3 align-items-end">
+        @Html.AntiForgeryToken()
+        <div class="col-md-8">
+            <label class="form-label fw-semibold mb-1">Promotions shown in the app</label>
+            <p class="small text-muted mb-2">
+                You can add as many promotions as you need. Only the first
+                <strong>N</strong> active ones (by sort order) are displayed on the phone after splash.
+            </p>
+            <div class="input-group" style="max-width:280px;">
+                <input type="number" name="displayLimit" class="form-control" min="1" max="50"
+                       value="@Model.DisplayLimit" required />
+                <span class="input-group-text">max on device</span>
+            </div>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <button type="submit" class="btn btn-btih"><i class="bi bi-save"></i> Save display limit</button>
+        </div>
+    </form>
+</div>
 
 <div class="panel-card datatable-panel">
     <div class="table-responsive">

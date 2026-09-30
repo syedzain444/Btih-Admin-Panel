@@ -19,7 +19,7 @@ namespace HospitalAdminPanel.Controllers;
 
 
 [AdminAuthorize]
-
+[AdminPermission(AdminModules.Messages)]
 public class MessagesController : Controller
 
 {

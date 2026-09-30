@@ -132,6 +132,7 @@ public class PromotionListViewModel
 {
     public List<PromotionApiModel> Promotions { get; set; } = new();
     public string ApiBaseUrl { get; set; } = string.Empty;
+    public int DisplayLimit { get; set; } = 5;
 }
 
 public class PromotionFormViewModel
@@ -145,6 +146,24 @@ public class PromotionFormViewModel
     public DateTime? EndAt { get; set; }
     public string? ExistingImageUrl { get; set; }
     public string ApiBaseUrl { get; set; } = string.Empty;
+}
+
+public class SupportContentViewModel
+{
+    public SupportContactApiModel Contact { get; set; } = new();
+    public List<FaqAdminApiModel> Faqs { get; set; } = new();
+}
+
+public class FaqFormViewModel
+{
+    public int? FaqId { get; set; }
+    public string Category { get; set; } = "General";
+    public string QuestionEn { get; set; } = string.Empty;
+    public string AnswerEn { get; set; } = string.Empty;
+    public string? QuestionUr { get; set; }
+    public string? AnswerUr { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; } = true;
 }
 
 public class PageHeaderViewModel

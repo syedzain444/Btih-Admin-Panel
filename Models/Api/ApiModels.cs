@@ -216,6 +216,8 @@ public class SupportTicketApiModel
     public int TicketId { get; set; }
     public string? MrNo { get; set; }
     public string ContactName { get; set; } = string.Empty;
+    public string? ContactPhone { get; set; }
+    public string? ContactEmail { get; set; }
     public string Category { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
@@ -304,4 +306,51 @@ public class PromotionApiModel
     public DateTime? EndAt { get; set; }
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+}
+
+public class PromotionListApiResponse
+{
+    public bool Success { get; set; }
+    public int DisplayLimit { get; set; } = 5;
+    public List<PromotionApiModel>? Data { get; set; }
+}
+
+public class PromotionDisplayLimitRequest
+{
+    public int DisplayLimit { get; set; } = 5;
+}
+
+public class SupportContactApiModel
+{
+    public string HospitalName { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public string WorkingHours { get; set; } = string.Empty;
+}
+
+public class SupportContactApiResponse
+{
+    public bool Success { get; set; }
+    public SupportContactApiModel? Data { get; set; }
+}
+
+public class FaqAdminApiModel
+{
+    public int FaqId { get; set; }
+    public string Category { get; set; } = "General";
+    public string QuestionEn { get; set; } = string.Empty;
+    public string AnswerEn { get; set; } = string.Empty;
+    public string? QuestionUr { get; set; }
+    public string? AnswerUr { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime? CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public class FaqAdminListApiResponse
+{
+    public bool Success { get; set; }
+    public List<FaqAdminApiModel>? Data { get; set; }
 }

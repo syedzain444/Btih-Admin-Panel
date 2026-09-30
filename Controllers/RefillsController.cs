@@ -1,4 +1,5 @@
 using HospitalAdminPanel.Factories;
+using HospitalAdminPanel.Helpers;
 using HospitalAdminPanel.Middleware;
 using HospitalAdminPanel.Models.Api;
 using HospitalAdminPanel.Models.ViewModels;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HospitalAdminPanel.Controllers;
 
 [AdminAuthorize]
+[AdminPermission(AdminModules.Refills)]
 public class RefillsController : Controller
 {
     private readonly IApiFactory _apiFactory;

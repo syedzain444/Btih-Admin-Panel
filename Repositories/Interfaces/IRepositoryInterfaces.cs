@@ -76,8 +76,19 @@ public interface IAuditRepository
 
 public interface IPromotionRepository
 {
-    Task<List<PromotionApiModel>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<(List<PromotionApiModel> Promotions, int DisplayLimit)> GetAllAsync(CancellationToken cancellationToken = default);
     Task CreateAsync(MultipartFormDataContent content, CancellationToken cancellationToken = default);
     Task UpdateAsync(int promotionId, MultipartFormDataContent content, CancellationToken cancellationToken = default);
     Task DeleteAsync(int promotionId, CancellationToken cancellationToken = default);
+    Task SetDisplayLimitAsync(int displayLimit, CancellationToken cancellationToken = default);
+}
+
+public interface ISupportContentRepository
+{
+    Task<SupportContactApiModel?> GetContactAsync(CancellationToken cancellationToken = default);
+    Task UpdateContactAsync(SupportContactApiModel contact, CancellationToken cancellationToken = default);
+    Task<List<FaqAdminApiModel>> GetFaqsAsync(CancellationToken cancellationToken = default);
+    Task CreateFaqAsync(FaqAdminApiModel faq, CancellationToken cancellationToken = default);
+    Task UpdateFaqAsync(int faqId, FaqAdminApiModel faq, CancellationToken cancellationToken = default);
+    Task DeleteFaqAsync(int faqId, CancellationToken cancellationToken = default);
 }

@@ -1,5 +1,6 @@
 using HospitalAdminPanel.Configuration;
 using HospitalAdminPanel.Factories;
+using HospitalAdminPanel.Helpers;
 using HospitalAdminPanel.Middleware;
 using HospitalAdminPanel.Models.ViewModels;
 using HospitalAdminPanel.Services;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Options;
 namespace HospitalAdminPanel.Controllers;
 
 [AdminAuthorize]
+[AdminPermission(AdminModules.Promotions)]
 public class PromotionsController : Controller
 {
     private readonly IApiFactory _apiFactory;
@@ -24,10 +26,11 @@ public class PromotionsController : Controller
     {
         try
         {
-            var promotions = await _apiFactory.Promotions.GetAllAsync(cancellationToken);
+            var (promotions, displayLimit) = await _apiFactory.Promotions.GetAllAsync(cancellationToken);
             return View(new PromotionListViewModel
             {
                 Promotions = promotions,
+                DisplayLimit = displayLimit,
                 ApiBaseUrl = _apiSettings.BaseUrl.TrimEnd('/'),
             });
         }
@@ -47,6 +50,33 @@ public class PromotionsController : Controller
                 ApiBaseUrl = _apiSettings.BaseUrl.TrimEnd('/'),
             });
         }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveDisplayLimit(int displayLimit, CancellationToken cancellationToken)
+    {
+        if (displayLimit < 1 || displayLimit > 50)
+        {
+            TempData["Error"] = "Display limit must be between 1 and 50.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            await _apiFactory.Promotions.SetDisplayLimitAsync(displayLimit, cancellationToken);
+            TempData["Success"] = $"App will show up to {displayLimit} promotion(s).";
+        }
+        catch (ApiException ex)
+        {
+            TempData["Error"] = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = $"Could not save display limit: {ex.Message}";
+        }
+
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpGet]
@@ -106,7 +136,7 @@ public class PromotionsController : Controller
     {
         try
         {
-            var all = await _apiFactory.Promotions.GetAllAsync(cancellationToken);
+            var (all, _) = await _apiFactory.Promotions.GetAllAsync(cancellationToken);
             var item = all.FirstOrDefault(p => p.PromotionId == id);
             if (item == null)
             {
