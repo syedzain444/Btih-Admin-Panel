@@ -331,6 +331,93 @@ public class PromotionRepository : IPromotionRepository
     }
 }
 
+public class OfferRepository : IOfferRepository
+{
+    private readonly IApiClient _api;
+
+    public OfferRepository(IApiClient api) => _api = api;
+
+    public async Task<List<OfferApiModel>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _api.GetAsync<OfferListApiResponse>(
+            "api/admin/offers",
+            cancellationToken);
+        return response?.Data ?? new List<OfferApiModel>();
+    }
+
+    public async Task CreateAsync(MultipartFormDataContent content, CancellationToken cancellationToken = default)
+    {
+        await _api.PostMultipartAsync<object>("api/admin/offers", content, cancellationToken);
+    }
+
+    public async Task UpdateAsync(int offerId, MultipartFormDataContent content, CancellationToken cancellationToken = default)
+    {
+        await _api.PutMultipartAsync<object>($"api/admin/offers/{offerId}", content, cancellationToken);
+    }
+
+    public async Task DeleteAsync(int offerId, CancellationToken cancellationToken = default)
+    {
+        await _api.DeleteAsync($"api/admin/offers/{offerId}", cancellationToken);
+    }
+}
+
+public class RbacRepository : IRbacRepository
+{
+    private readonly IApiClient _api;
+
+    public RbacRepository(IApiClient api) => _api = api;
+
+    public async Task<List<AdminPermissionApiModel>> GetPermissionsAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _api.GetAsync<ApiSuccessResponse<List<AdminPermissionApiModel>>>(
+            "api/admin/rbac/permissions", cancellationToken);
+        return response?.Data ?? new List<AdminPermissionApiModel>();
+    }
+
+    public async Task<List<AdminRoleApiModel>> GetRolesAsync(bool includeInactive = true, CancellationToken cancellationToken = default)
+    {
+        var response = await _api.GetAsync<ApiSuccessResponse<List<AdminRoleApiModel>>>(
+            $"api/admin/rbac/roles?includeInactive={(includeInactive ? "true" : "false")}",
+            cancellationToken);
+        return response?.Data ?? new List<AdminRoleApiModel>();
+    }
+
+    public async Task<AdminRoleApiModel?> GetRoleAsync(int roleId, CancellationToken cancellationToken = default)
+    {
+        var response = await _api.GetAsync<ApiSuccessResponse<AdminRoleApiModel>>(
+            $"api/admin/rbac/roles/{roleId}", cancellationToken);
+        return response?.Data;
+    }
+
+    public Task CreateRoleAsync(object body, CancellationToken cancellationToken = default) =>
+        _api.PostAsync("api/admin/rbac/roles", body, cancellationToken);
+
+    public Task UpdateRoleAsync(int roleId, object body, CancellationToken cancellationToken = default) =>
+        _api.PutAsync($"api/admin/rbac/roles/{roleId}", body, cancellationToken);
+
+    public Task SetRolePermissionsAsync(int roleId, IEnumerable<string> permissions, CancellationToken cancellationToken = default) =>
+        _api.PutAsync($"api/admin/rbac/roles/{roleId}/permissions", new { permissions }, cancellationToken);
+
+    public Task DeleteRoleAsync(int roleId, CancellationToken cancellationToken = default) =>
+        _api.DeleteAsync($"api/admin/rbac/roles/{roleId}", cancellationToken);
+
+    public async Task<List<AdminStaffUserApiModel>> GetUsersAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _api.GetAsync<ApiSuccessResponse<List<AdminStaffUserApiModel>>>(
+            "api/admin/rbac/users", cancellationToken);
+        return response?.Data ?? new List<AdminStaffUserApiModel>();
+    }
+
+    public Task CreateUserAsync(object body, CancellationToken cancellationToken = default) =>
+        _api.PostAsync("api/admin/rbac/users", body, cancellationToken);
+
+    public Task UpdateUserAsync(int adminId, object body, CancellationToken cancellationToken = default) =>
+        _api.PutAsync($"api/admin/rbac/users/{adminId}", body, cancellationToken);
+
+    public Task ResetPasswordAsync(int adminId, string newPassword, CancellationToken cancellationToken = default) =>
+        _api.PostAsync($"api/admin/rbac/users/{adminId}/reset-password", new { newPassword }, cancellationToken);
+}
+
 public class SupportContentRepository : ISupportContentRepository
 {
     private readonly IApiClient _api;

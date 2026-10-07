@@ -67,7 +67,14 @@ public class AccountController : Controller
                 return View(model);
             }
 
-            response.User.Role = AdminRoles.Normalize(response.User.Role);
+            response.User.Role = string.IsNullOrWhiteSpace(response.User.Role)
+                ? AdminRoles.Admin
+                : response.User.Role.Trim();
+            response.User.Permissions ??= new List<string>();
+            if (response.User.Permissions.Count == 0)
+            {
+                response.User.Permissions = AdminModulePermissions.ModulesFor(response.User.Role).ToList();
+            }
 
             var expiresAt = response.ExpiresAt ?? DateTime.UtcNow.AddHours(8);
             _tokenSession.SetSession(response.Token, response.User, expiresAt);

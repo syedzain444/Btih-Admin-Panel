@@ -1,0 +1,92 @@
+@model HospitalAdminPanel.Models.ViewModels.AccessRolesViewModel
+@{
+    ViewData["Title"] = "Roles & Permissions";
+    ViewData["HeroTitle"] = "Roles & Permissions";
+    ViewData["HeroSubtitle"] = "Define what each role can access in the admin panel";
+    ViewData["HeroIcon"] = "bi-shield-lock";
+    ViewData["HeroBreadcrumb"] = "Home / Access Control / Roles";
+}
+
+@section HeroActions {
+    <a asp-action="Users" class="btn btn-outline-secondary me-2"><i class="bi bi-people"></i> Admin users</a>
+    <a asp-action="CreateRole" class="btn btn-btih"><i class="bi bi-plus-lg"></i> Add role</a>
+}
+
+<div class="panel-card datatable-panel">
+    <div class="table-responsive">
+        <table class="table table-btih datatable-btih mb-0 w-100">
+            <thead>
+                <tr>
+                    <th>Role</th>
+                    <th>Code</th>
+                    <th>Status</th>
+                    <th>Permissions</th>
+                    <th class="no-sort">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var r in Model.Roles)
+            {
+                <tr>
+                    <td>
+                        <strong>@r.Name</strong>
+                        @if (r.IsSystem)
+                        {
+                            <span class="badge text-bg-secondary ms-1">System</span>
+                        }
+                        <div class="small text-muted">@(r.Description ?? "")</div>
+                    </td>
+                    <td><code>@r.Code</code></td>
+                    <td>
+                        @if (r.IsActive)
+                        {
+                            <span class="badge-status badge-open">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge-status">Inactive</span>
+                        }
+                    </td>
+                    <td class="small">
+                        @string.Join(", ", (r.Permissions ?? new List<string>()).Take(6))
+                        @if ((r.Permissions?.Count ?? 0) > 6)
+                        {
+                            <span>… +@(r.Permissions!.Count - 6)</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-action="EditRole" asp-route-id="@r.RoleId" class="btn btn-sm btn-action btn-action-manage">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        @if (!r.IsSystem)
+                        {
+                            <form asp-action="DeleteRole" asp-route-id="@r.RoleId" method="post" class="d-inline"
+                                  onsubmit="return confirm('Delete this role?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="panel-card mt-3">
+    <h6 class="fw-semibold mb-2">Permission catalog</h6>
+    <p class="small text-muted mb-3">Modules available to assign to roles. These map 1:1 to admin panel menus and API gates.</p>
+    <div class="row g-2">
+        @foreach (var p in Model.Permissions.OrderBy(x => x.SortOrder))
+        {
+            <div class="col-md-4">
+                <div class="border rounded-3 p-3 h-100">
+                    <div class="fw-semibold">@p.Name</div>
+                    <div class="small text-muted"><code>@p.ModuleKey</code></div>
+                    <div class="small mt-1">@(p.Description ?? "")</div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

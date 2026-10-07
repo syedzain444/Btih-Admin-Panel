@@ -36,8 +36,10 @@ public static class AdminModules
     public const string Refills = "Refills";
     public const string Tickets = "Tickets";
     public const string Promotions = "Promotions";
+    public const string Offers = "Offers";
     public const string SupportContent = "SupportContent";
     public const string Audit = "Audit";
+    public const string AccessControl = "AccessControl";
 }
 
 public static class AdminModulePermissions
@@ -55,24 +57,46 @@ public static class AdminModulePermissions
             [AdminModules.Reports] = [AdminRoles.Admin],
             [AdminModules.Analytics] = [AdminRoles.Admin],
             [AdminModules.Audit] = [AdminRoles.Admin],
+            [AdminModules.AccessControl] = [AdminRoles.Admin],
 
             // Operations — Staff + Admin
             [AdminModules.Refills] = [AdminRoles.Admin, AdminRoles.Staff],
             [AdminModules.Tickets] = [AdminRoles.Admin, AdminRoles.Staff],
             [AdminModules.Promotions] = [AdminRoles.Admin, AdminRoles.Staff],
+            [AdminModules.Offers] = [AdminRoles.Admin, AdminRoles.Staff],
             [AdminModules.SupportContent] = [AdminRoles.Admin, AdminRoles.Staff],
         };
 
-    public static bool CanAccess(string? role, string module)
+    public static bool CanAccess(string? role, string module, IEnumerable<string>? sessionPermissions = null)
     {
         if (string.IsNullOrWhiteSpace(module)) return false;
+
+        // Prefer live permissions from login (DB-driven RBAC)
+        if (sessionPermissions != null)
+        {
+            var list = sessionPermissions.ToList();
+            if (list.Count > 0)
+            {
+                return list.Any(p => string.Equals(p, module, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
         if (!Matrix.TryGetValue(module, out var allowed)) return false;
         var normalized = AdminRoles.Normalize(role);
         return allowed.Any(r => string.Equals(r, normalized, StringComparison.OrdinalIgnoreCase));
     }
 
-    public static IReadOnlyList<string> ModulesFor(string? role)
+    public static IReadOnlyList<string> ModulesFor(string? role, IEnumerable<string>? sessionPermissions = null)
     {
+        if (sessionPermissions != null)
+        {
+            var list = sessionPermissions
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (list.Count > 0) return list;
+        }
+
         var normalized = AdminRoles.Normalize(role);
         return Matrix
             .Where(kv => kv.Value.Any(r => string.Equals(r, normalized, StringComparison.OrdinalIgnoreCase)))

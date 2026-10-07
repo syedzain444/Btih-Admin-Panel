@@ -7,7 +7,7 @@
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
     var initials = user?.DisplayName?.Substring(0, 1) ?? user?.Username?.Substring(0, 1) ?? "A";
-    bool Can(string module) => AdminModulePermissions.CanAccess(role, module);
+    bool Can(string module) => AdminModulePermissions.CanAccess(role, module, user?.Permissions);
     var isLoginPage = controller.Equals("Account", StringComparison.OrdinalIgnoreCase)
         && !action.Equals("Forbidden", StringComparison.OrdinalIgnoreCase);
 }
@@ -144,7 +144,7 @@ else
                         <a class="@(controller=="Users"?"active":"")" asp-controller="Users" asp-action="Index">Patients</a>
                     }
                 </div>
-                @if (Can(AdminModules.Refills) || Can(AdminModules.Tickets) || Can(AdminModules.Promotions) || Can(AdminModules.SupportContent) || Can(AdminModules.Reports))
+                @if (Can(AdminModules.Refills) || Can(AdminModules.Tickets) || Can(AdminModules.Promotions) || Can(AdminModules.Offers) || Can(AdminModules.SupportContent) || Can(AdminModules.Reports))
                 {
                     <div class="nav-tree-item fw-semibold text-dark mt-2"><i class="bi bi-clipboard-data"></i> Operations</div>
                     <div class="nav-nested">
@@ -171,6 +171,10 @@ else
                         {
                             <a class="@(controller=="Promotions"?"active":"")" asp-controller="Promotions" asp-action="Index">Promotions</a>
                         }
+                        @if (Can(AdminModules.Offers))
+                        {
+                            <a class="@(controller=="Offers"?"active":"")" asp-controller="Offers" asp-action="Index">Offers &amp; Packages</a>
+                        }
                         @if (Can(AdminModules.SupportContent))
                         {
                             <a class="@(controller=="SupportContent"?"active":"")" asp-controller="SupportContent" asp-action="Index">Help Content</a>
@@ -185,6 +189,12 @@ else
 
             <div class="nav-section-label mt-3">System</div>
             <div class="nav-tree">
+                @if (Can(AdminModules.AccessControl))
+                {
+                    <a class="@(controller=="AccessControl"?"active":"")" asp-controller="AccessControl" asp-action="Users">
+                        <i class="bi bi-shield-lock"></i> Access control
+                    </a>
+                }
                 <a href="#"><i class="bi bi-link-45deg"></i> API health</a>
             </div>
         </aside>

@@ -74,7 +74,7 @@ public class AdminPermissionAttribute : Attribute, IAuthorizationFilter
             return;
         }
 
-        if (!AdminModulePermissions.CanAccess(user.Role, _module))
+        if (!AdminModulePermissions.CanAccess(user.Role, _module, user.Permissions))
         {
             context.Result = new RedirectToActionResult("Forbidden", "Account", new { module = _module });
         }

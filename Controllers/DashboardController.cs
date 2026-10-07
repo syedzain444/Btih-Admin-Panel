@@ -18,12 +18,14 @@ public class DashboardController : Controller
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         var vm = new DashboardViewModel();
-        var role = HttpContext.RequestServices
+        var sessionUser = HttpContext.RequestServices
             .GetRequiredService<ITokenSessionService>()
-            .GetUser()?.Role;
-        var canAnalytics = AdminModulePermissions.CanAccess(role, AdminModules.Analytics);
-        var canTickets = AdminModulePermissions.CanAccess(role, AdminModules.Tickets);
-        var canRefills = AdminModulePermissions.CanAccess(role, AdminModules.Refills);
+            .GetUser();
+        var role = sessionUser?.Role;
+        var perms = sessionUser?.Permissions;
+        var canAnalytics = AdminModulePermissions.CanAccess(role, AdminModules.Analytics, perms);
+        var canTickets = AdminModulePermissions.CanAccess(role, AdminModules.Tickets, perms);
+        var canRefills = AdminModulePermissions.CanAccess(role, AdminModules.Refills, perms);
 
         try
         {

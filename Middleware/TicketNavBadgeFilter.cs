@@ -37,8 +37,9 @@ public class TicketNavBadgeFilter : IAsyncActionFilter
             return;
         }
 
-        var role = tokenSession.GetUser()?.Role;
-        if (!AdminModulePermissions.CanAccess(role, AdminModules.Tickets))
+        var sessionUser = tokenSession.GetUser();
+        var role = sessionUser?.Role;
+        if (!AdminModulePermissions.CanAccess(role, AdminModules.Tickets, sessionUser?.Permissions))
         {
             controller.ViewData[ViewDataKey] = 0;
             return;

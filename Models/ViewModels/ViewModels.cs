@@ -148,6 +148,33 @@ public class PromotionFormViewModel
     public string ApiBaseUrl { get; set; } = string.Empty;
 }
 
+public class OfferListViewModel
+{
+    public List<OfferApiModel> Offers { get; set; } = new();
+    public string ApiBaseUrl { get; set; } = string.Empty;
+}
+
+public class OfferFormViewModel
+{
+    public int? OfferId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Subtitle { get; set; }
+    public string? Description { get; set; }
+    public string Category { get; set; } = "Package";
+    public decimal? OriginalPrice { get; set; }
+    public decimal? OfferPrice { get; set; }
+    public string Currency { get; set; } = "PKR";
+    public string? Highlights { get; set; }
+    public string CtaLabel { get; set; } = "Enquire";
+    public string? CtaPhone { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime? StartAt { get; set; }
+    public DateTime? EndAt { get; set; }
+    public string? ExistingImageUrl { get; set; }
+    public string ApiBaseUrl { get; set; } = string.Empty;
+}
+
 public class SupportContentViewModel
 {
     public SupportContactApiModel Contact { get; set; } = new();
@@ -164,6 +191,41 @@ public class FaqFormViewModel
     public string? AnswerUr { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;
+}
+
+public class AccessUsersViewModel
+{
+    public List<AdminStaffUserApiModel> Users { get; set; } = new();
+    public List<AdminRoleApiModel> Roles { get; set; } = new();
+}
+
+public class AccessUserFormViewModel
+{
+    public int? AdminId { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string? DisplayName { get; set; }
+    public string Role { get; set; } = "Staff";
+    public string? Password { get; set; }
+    public bool IsActive { get; set; } = true;
+    public List<AdminRoleApiModel> Roles { get; set; } = new();
+}
+
+public class AccessRolesViewModel
+{
+    public List<AdminRoleApiModel> Roles { get; set; } = new();
+    public List<AdminPermissionApiModel> Permissions { get; set; } = new();
+}
+
+public class AccessRoleFormViewModel
+{
+    public int? RoleId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool IsSystem { get; set; }
+    public List<string> SelectedPermissions { get; set; } = new();
+    public List<AdminPermissionApiModel> AllPermissions { get; set; } = new();
 }
 
 public class PageHeaderViewModel

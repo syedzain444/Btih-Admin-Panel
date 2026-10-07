@@ -15,6 +15,8 @@ public class ApiFactory : IApiFactory
         ISupportTicketRepository supportTickets,
         IAuditRepository audit,
         IPromotionRepository promotions,
+        IOfferRepository offers,
+        IRbacRepository rbac,
         ISupportContentRepository supportContent)
     {
         Auth = auth;
@@ -27,6 +29,8 @@ public class ApiFactory : IApiFactory
         SupportTickets = supportTickets;
         Audit = audit;
         Promotions = promotions;
+        Offers = offers;
+        Rbac = rbac;
         SupportContent = supportContent;
     }
 
@@ -40,5 +44,7 @@ public class ApiFactory : IApiFactory
     public ISupportTicketRepository SupportTickets { get; }
     public IAuditRepository Audit { get; }
     public IPromotionRepository Promotions { get; }
+    public IOfferRepository Offers { get; }
+    public IRbacRepository Rbac { get; }
     public ISupportContentRepository SupportContent { get; }
 }

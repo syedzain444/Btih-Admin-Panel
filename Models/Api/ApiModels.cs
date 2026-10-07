@@ -43,6 +43,37 @@ public class AdminUserApiModel
     public string? DisplayName { get; set; }
     public string Role { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public List<string> Permissions { get; set; } = new();
+}
+
+public class AdminPermissionApiModel
+{
+    public int PermissionId { get; set; }
+    public string ModuleKey { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int SortOrder { get; set; }
+}
+
+public class AdminRoleApiModel
+{
+    public int RoleId { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsSystem { get; set; }
+    public bool IsActive { get; set; } = true;
+    public List<string> Permissions { get; set; } = new();
+}
+
+public class AdminStaffUserApiModel
+{
+    public int AdminId { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string? DisplayName { get; set; }
+    public string Role { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public List<string> Permissions { get; set; } = new();
 }
 
 public class DashboardCountsApiModel
@@ -318,6 +349,36 @@ public class PromotionListApiResponse
 public class PromotionDisplayLimitRequest
 {
     public int DisplayLimit { get; set; } = 5;
+}
+
+public class OfferApiModel
+{
+    public int OfferId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Subtitle { get; set; }
+    public string? Description { get; set; }
+    public string Category { get; set; } = "Package";
+    public string? ImageUrl { get; set; }
+    public decimal? OriginalPrice { get; set; }
+    public decimal? OfferPrice { get; set; }
+    public string Currency { get; set; } = "PKR";
+    public string? Highlights { get; set; }
+    public List<string>? HighlightList { get; set; }
+    public string CtaLabel { get; set; } = "Enquire";
+    public string? CtaPhone { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime? StartAt { get; set; }
+    public DateTime? EndAt { get; set; }
+    public DateTime? CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+}
+
+public class OfferListApiResponse
+{
+    public bool Success { get; set; }
+    public int Count { get; set; }
+    public List<OfferApiModel>? Data { get; set; }
 }
 
 public class SupportContactApiModel

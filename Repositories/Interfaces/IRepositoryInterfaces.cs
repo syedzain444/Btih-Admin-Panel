@@ -83,6 +83,29 @@ public interface IPromotionRepository
     Task SetDisplayLimitAsync(int displayLimit, CancellationToken cancellationToken = default);
 }
 
+public interface IOfferRepository
+{
+    Task<List<OfferApiModel>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task CreateAsync(MultipartFormDataContent content, CancellationToken cancellationToken = default);
+    Task UpdateAsync(int offerId, MultipartFormDataContent content, CancellationToken cancellationToken = default);
+    Task DeleteAsync(int offerId, CancellationToken cancellationToken = default);
+}
+
+public interface IRbacRepository
+{
+    Task<List<AdminPermissionApiModel>> GetPermissionsAsync(CancellationToken cancellationToken = default);
+    Task<List<AdminRoleApiModel>> GetRolesAsync(bool includeInactive = true, CancellationToken cancellationToken = default);
+    Task<AdminRoleApiModel?> GetRoleAsync(int roleId, CancellationToken cancellationToken = default);
+    Task CreateRoleAsync(object body, CancellationToken cancellationToken = default);
+    Task UpdateRoleAsync(int roleId, object body, CancellationToken cancellationToken = default);
+    Task SetRolePermissionsAsync(int roleId, IEnumerable<string> permissions, CancellationToken cancellationToken = default);
+    Task DeleteRoleAsync(int roleId, CancellationToken cancellationToken = default);
+    Task<List<AdminStaffUserApiModel>> GetUsersAsync(CancellationToken cancellationToken = default);
+    Task CreateUserAsync(object body, CancellationToken cancellationToken = default);
+    Task UpdateUserAsync(int adminId, object body, CancellationToken cancellationToken = default);
+    Task ResetPasswordAsync(int adminId, string newPassword, CancellationToken cancellationToken = default);
+}
+
 public interface ISupportContentRepository
 {
     Task<SupportContactApiModel?> GetContactAsync(CancellationToken cancellationToken = default);

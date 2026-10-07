@@ -14,5 +14,7 @@ public interface IApiFactory
     ISupportTicketRepository SupportTickets { get; }
     IAuditRepository Audit { get; }
     IPromotionRepository Promotions { get; }
+    IOfferRepository Offers { get; }
+    IRbacRepository Rbac { get; }
     ISupportContentRepository SupportContent { get; }
 }

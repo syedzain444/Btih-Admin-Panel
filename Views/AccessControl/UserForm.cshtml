@@ -1,0 +1,59 @@
+@model HospitalAdminPanel.Models.ViewModels.AccessUserFormViewModel
+@{
+    var isEdit = Model.AdminId.HasValue;
+    ViewData["Title"] = isEdit ? "Edit Admin User" : "Add Admin User";
+    ViewData["HeroTitle"] = isEdit ? "Edit Admin User" : "Add Admin User";
+    ViewData["HeroSubtitle"] = "Assign a role to control which modules this user can open";
+    ViewData["HeroIcon"] = "bi-person-plus";
+    ViewData["HeroBreadcrumb"] = "Home / Access Control / Users / Form";
+}
+
+<div class="panel-card" style="max-width:640px;">
+    <form asp-action="@(isEdit ? "EditUser" : "CreateUser")" method="post" asp-route-id="@(Model.AdminId)">
+        @Html.AntiForgeryToken()
+        <div class="mb-3">
+            <label class="form-label">Username</label>
+            @if (isEdit)
+            {
+                <input asp-for="Username" class="form-control" maxlength="80" readonly />
+            }
+            else
+            {
+                <input asp-for="Username" class="form-control" maxlength="80" required />
+            }
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Display name</label>
+            <input asp-for="DisplayName" class="form-control" maxlength="120" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Role</label>
+            <select asp-for="Role" class="form-select" required>
+                @foreach (var r in Model.Roles.Where(x => x.IsActive))
+                {
+                    <option value="@r.Code">@r.Name (@r.Code)</option>
+                }
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">@(isEdit ? "New password (optional)" : "Password")</label>
+            @if (isEdit)
+            {
+                <input asp-for="Password" type="password" class="form-control" autocomplete="new-password" />
+            }
+            else
+            {
+                <input asp-for="Password" type="password" class="form-control" autocomplete="new-password" required />
+            }
+            <div class="form-text">Minimum 8 characters@(isEdit ? ". Leave blank to keep current password." : ".")</div>
+        </div>
+        <div class="form-check form-switch mb-3">
+            <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+            <label class="form-check-label" asp-for="IsActive">Active</label>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-btih">@(isEdit ? "Save changes" : "Create user")</button>
+            <a asp-action="Users" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>

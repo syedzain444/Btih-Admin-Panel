@@ -1,0 +1,75 @@
+@model HospitalAdminPanel.Models.ViewModels.AccessRoleFormViewModel
+@{
+    var isEdit = Model.RoleId.HasValue;
+    ViewData["Title"] = isEdit ? "Edit Role" : "Add Role";
+    ViewData["HeroTitle"] = isEdit ? "Edit Role" : "Add Role";
+    ViewData["HeroSubtitle"] = "Tick the modules this role is allowed to use";
+    ViewData["HeroIcon"] = "bi-shield-check";
+    ViewData["HeroBreadcrumb"] = "Home / Access Control / Roles / Form";
+    var selected = new HashSet<string>(Model.SelectedPermissions ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+}
+
+<div class="panel-card" style="max-width:860px;">
+    <form asp-action="@(isEdit ? "EditRole" : "CreateRole")" method="post" asp-route-id="@(Model.RoleId)">
+        @Html.AntiForgeryToken()
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Code</label>
+                @if (isEdit)
+                {
+                    <input asp-for="Code" class="form-control" maxlength="40" readonly />
+                }
+                else
+                {
+                    <input asp-for="Code" class="form-control" maxlength="40" required />
+                }
+                <div class="form-text">Letters/numbers only (e.g. NurseDesk).</div>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Name</label>
+                <input asp-for="Name" class="form-control" maxlength="80" required />
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <div class="form-check form-switch mb-2">
+                    <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                    <label class="form-check-label" asp-for="IsActive">Active</label>
+                </div>
+            </div>
+        </div>
+        <div class="mb-3 mt-3">
+            <label class="form-label">Description</label>
+            <textarea asp-for="Description" class="form-control" rows="2" maxlength="400"></textarea>
+        </div>
+
+        <h6 class="fw-semibold mt-4 mb-2">Module permissions</h6>
+        <div class="row g-2">
+            @foreach (var p in Model.AllPermissions.OrderBy(x => x.SortOrder))
+            {
+                var checkId = $"perm_{p.ModuleKey}";
+                <div class="col-md-6">
+                    <div class="form-check border rounded-3 p-3">
+                        @if (selected.Contains(p.ModuleKey))
+                        {
+                            <input class="form-check-input ms-0 me-2" type="checkbox" name="SelectedPermissions" value="@p.ModuleKey"
+                                   id="@checkId" checked />
+                        }
+                        else
+                        {
+                            <input class="form-check-input ms-0 me-2" type="checkbox" name="SelectedPermissions" value="@p.ModuleKey"
+                                   id="@checkId" />
+                        }
+                        <label class="form-check-label" for="@checkId">
+                            <strong>@p.Name</strong>
+                            <div class="small text-muted">@p.ModuleKey — @(p.Description ?? "")</div>
+                        </label>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-btih">@(isEdit ? "Save role" : "Create role")</button>
+            <a asp-action="Roles" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>

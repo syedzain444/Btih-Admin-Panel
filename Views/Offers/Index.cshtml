@@ -1,0 +1,108 @@
+@model HospitalAdminPanel.Models.ViewModels.OfferListViewModel
+@{
+    ViewData["Title"] = "Offers & Packages";
+    ViewData["HeroTitle"] = "Offers & Packages";
+    ViewData["HeroSubtitle"] = "Manage health packages shown in the mobile app More hub";
+    ViewData["HeroIcon"] = "bi-gift";
+    ViewData["HeroBreadcrumb"] = "Home / Offers";
+}
+
+@section HeroActions {
+    <a asp-action="Create" class="btn btn-btih"><i class="bi bi-plus-lg"></i> Add offer</a>
+}
+
+<div class="panel-card datatable-panel">
+    <div class="table-responsive">
+        <table class="table table-btih datatable-btih mb-0 w-100">
+            <thead>
+                <tr>
+                    <th>Preview</th>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Order</th>
+                    <th>Status</th>
+                    <th>Schedule</th>
+                    <th class="no-sort">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var o in Model.Offers)
+            {
+                var imageSrc = string.IsNullOrWhiteSpace(o.ImageUrl)
+                    ? ""
+                    : (o.ImageUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                        ? o.ImageUrl
+                        : $"{Model.ApiBaseUrl}{o.ImageUrl}");
+                <tr>
+                    <td style="width:96px;">
+                        @if (!string.IsNullOrWhiteSpace(imageSrc))
+                        {
+                            <img src="@imageSrc" alt="@o.Title" style="width:72px;height:56px;object-fit:cover;border-radius:10px;border:1px solid #eee;" />
+                        }
+                        else
+                        {
+                            <div class="d-flex align-items-center justify-content-center text-muted" style="width:72px;height:56px;border-radius:10px;background:#f7f7f7;border:1px solid #eee;">
+                                <i class="bi bi-image"></i>
+                            </div>
+                        }
+                    </td>
+                    <td>
+                        <strong>@o.Title</strong>
+                        <div class="small text-muted">#@o.OfferId</div>
+                        @if (!string.IsNullOrWhiteSpace(o.Subtitle))
+                        {
+                            <div class="small text-muted">@o.Subtitle</div>
+                        }
+                    </td>
+                    <td>@o.Category</td>
+                    <td class="small">
+                        @if (o.OfferPrice.HasValue)
+                        {
+                            <strong>@o.Currency @o.OfferPrice.Value.ToString("N0")</strong>
+                            if (o.OriginalPrice.HasValue && o.OriginalPrice > o.OfferPrice)
+                            {
+                                <div class="text-muted text-decoration-line-through">@o.Currency @o.OriginalPrice.Value.ToString("N0")</div>
+                            }
+                        }
+                        else if (o.OriginalPrice.HasValue)
+                        {
+                            <span>@o.Currency @o.OriginalPrice.Value.ToString("N0")</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                    </td>
+                    <td>@o.SortOrder</td>
+                    <td>
+                        @if (o.IsActive)
+                        {
+                            <span class="badge-status badge-open">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge-status">Inactive</span>
+                        }
+                    </td>
+                    <td class="small">
+                        @(o.StartAt?.ToString("dd MMM yyyy") ?? "—")
+                        →
+                        @(o.EndAt?.ToString("dd MMM yyyy") ?? "—")
+                    </td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@o.OfferId" class="btn btn-sm btn-action btn-action-manage">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <form asp-action="Delete" asp-route-id="@o.OfferId" method="post" class="d-inline"
+                              onsubmit="return confirm('Delete this offer?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
